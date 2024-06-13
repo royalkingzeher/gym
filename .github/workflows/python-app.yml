@@ -1,0 +1,56 @@
+name: CICD Pipeline for API Testing
+
+on:
+  push:
+    branches:
+      - api
+  pull_request:
+    branches:
+      - api
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      api:
+        image: node:14
+        ports:
+          - 3000:3000
+        env:
+          NODE_ENV: development
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install Node.js dependencies
+      run: |
+        cd api
+        npm install
+
+    - name: Start API server
+      run: |
+        cd api
+        nohup node server.js &
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.12'
+
+    - name: Install Python dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install requests
+
+    - name: Run tests
+      run: |
+        source venv/bin/activate
+        python -m unittest discover -s api/testcases -p "*.py"
