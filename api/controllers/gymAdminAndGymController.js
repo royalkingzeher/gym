@@ -3,6 +3,7 @@ const GymAdminAndGym = require("../models/gymAdminAndGym");
 const User = require("../models/user");
 const Gym = require("../models/gym");
 
+
 /**
  * @swagger
  * components:
