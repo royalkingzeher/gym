@@ -105,6 +105,8 @@ exports.getUserById = async (req, res) => {
       return res.status(404).send("User not found.");
     }
 
+    user.password = undefined; // Remove password from the response
+
     // Send the user details in the response
     res.status(200).json(user);
   } catch (error) {

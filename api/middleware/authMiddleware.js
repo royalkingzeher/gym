@@ -2,7 +2,6 @@ require("dotenv").config(); // Load environment variables
 const jwt = require("jsonwebtoken");
 const User = require("../models/user"); // Assuming you have a User model
 
-
 module.exports = async (req, res, next) => {
   // Extract the token from the Authorization header
   const authHeader = req.header("Authorization");

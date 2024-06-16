@@ -12,7 +12,7 @@ class TestSignupGymMember(unittest.TestCase):
         random_phone = ''.join(random.choices(string.digits, k=10))
 
         # Assuming you have a gym with ID 1
-        gym_id = 6
+        gym_id = 4
 
         # Send POST request
         response = requests.post('http://localhost:3000/api/signup/gymmember', json={

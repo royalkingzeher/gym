@@ -167,7 +167,7 @@ exports.createGymMembershipPlan = async (req, res) => {
 
 /**
  * @swagger
- * /api/gymMembershipPlans/{gymId}:
+ * /api/gymMembershipPlans/allByGym/{gymId}:
  *   get:
  *     summary: Get all membership plans of a gym
  *     tags: [MembershipPlans]
@@ -194,7 +194,7 @@ exports.createGymMembershipPlan = async (req, res) => {
  *         description: Internal server error
  */
 
-exports.getMembershipPlanByGymId = async (req, res) => {
+exports.getMembershipPlansByGymId = async (req, res) => {
   const gymId = req.params.gymId;
 
   try {

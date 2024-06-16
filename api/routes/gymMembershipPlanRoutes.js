@@ -4,13 +4,13 @@ const authMiddleware = require("../middleware/authMiddleware");
 const {
   createGymMembershipPlan,
   getMembershipPlanById,
-  getMembershipPlanByGymId,
+  getMembershipPlansByGymId,
   updateMembershipPlanById,
 } = require("../controllers/gymMembershipPlanController");
 
 router.post("/", authMiddleware, createGymMembershipPlan);
 router.get("/:planId", authMiddleware, getMembershipPlanById);
-router.get("/:gymId", authMiddleware, getMembershipPlanByGymId);
+router.get("/allByGym/:gymId", authMiddleware, getMembershipPlansByGymId);
 router.put("/update/:planId", authMiddleware, updateMembershipPlanById);
 
 module.exports = router;

@@ -41,7 +41,7 @@ const Gym = sequelize.define("Gym", {
   },
   email: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     unique: true,
     validate: {
       isEmail: true, // Validate email format
@@ -49,7 +49,7 @@ const Gym = sequelize.define("Gym", {
   },
   website: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     validate: {
       isURL: true, // Validate URL format
     },

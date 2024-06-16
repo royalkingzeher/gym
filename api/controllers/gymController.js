@@ -1,5 +1,75 @@
 const { Op } = require("sequelize");
 const Gym = require("../models/gym");
+const GymAdminAndGym = require("../models/gymAdminAndGym");
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Gym:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: The auto-generated ID of the gym
+ *           example: 1
+ *         name:
+ *           type: string
+ *           description: The name of the gym
+ *           example: Fit Gym
+ *         address:
+ *           type: string
+ *           description: The address of the gym
+ *           example: 123 Main St
+ *         city:
+ *           type: string
+ *           description: The city where the gym is located
+ *           example: Springfield
+ *         state:
+ *           type: string
+ *           description: The state where the gym is located
+ *           example: IL
+ *         country:
+ *           type: string
+ *           description: The country where the gym is located
+ *           example: USA
+ *         pincode:
+ *           type: string
+ *           description: The pincode of the gym's location
+ *           example: 62704
+ *         phone_number:
+ *           type: string
+ *           description: The phone number of the gym
+ *           example: 1234567890
+ *         email:
+ *           type: string
+ *           description: The email address of the gym
+ *           example: contact@fitgym.com
+ *         website:
+ *           type: string
+ *           description: The website URL of the gym
+ *           example: https://www.fitgym.com
+ *         contact_person:
+ *           type: string
+ *           description: The name of the contact person at the gym
+ *           example: John Doe
+ *         currency:
+ *           type: string
+ *           description: The currency used by the gym
+ *           example: USD
+ *         latitude:
+ *           type: number
+ *           description: The latitude coordinate of the gym's location
+ *           example: 39.7817
+ *         longitude:
+ *           type: number
+ *           description: The longitude coordinate of the gym's location
+ *           example: -89.6501
+ *         status:
+ *           type: string
+ *           description: The status of the gym
+ *           example: active
+ */
 
 /**
  * @swagger
@@ -129,7 +199,11 @@ exports.createGym = async (req, res) => {
 
   try {
     const gym = await Gym.create(req.body);
-    res.status(200).send(gym);
+    const response = {
+      message: "Gym created successfully",
+      gym: gym,
+    };
+    res.status(200).send(response);
   } catch (error) {
     res.status(500).json({
       error: "Internal server error",
@@ -420,6 +494,7 @@ exports.updateGymById = async (req, res) => {
     "currency",
     "latitude",
     "longitude",
+    "status",
   ];
 
   const providedFields = updateFields.filter((field) =>
@@ -479,6 +554,54 @@ exports.updateGymById = async (req, res) => {
         details: [error.message],
       });
     }
+    res.status(500).json({
+      error: "Internal server error",
+      details: [error.message],
+    });
+  }
+};
+
+/**
+ * @swagger
+ * /api/gym/currentUserGym:
+ *   post:
+ *     summary: Get gym details of current user (gym admin)
+ *     tags: [Gyms]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Gym details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Gym'
+ *       401:
+ *         description: Unauthorized, only gym admin user can view their gym details
+ *       500:
+ *         description: Internal server error
+ */
+exports.getGymForCurrentUser = async (req, res) => {
+  const currentUser = req.user;
+
+  if (currentUser.type !== "gym_admin") {
+    return res
+      .status(401)
+      .send("Unauthorized, only gym admin user can view their gym details");
+  }
+
+  const gymId = await GymAdminAndGym.findOne({
+    where: { gymAdminId: currentUser.id },
+  });
+
+  if (!gymId) {
+    return res.status(404).send("Gym not found");
+  }
+
+  try {
+    const gym = await Gym.findByPk(gymId.gymId);
+    res.status(200).send(gym);
+  } catch (error) {
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],

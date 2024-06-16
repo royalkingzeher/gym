@@ -7,4 +7,3 @@ const { getUserById } = require("../controllers/userController");
 router.get("/:userId", authMiddleware, getUserById);
 
 module.exports = router;
-

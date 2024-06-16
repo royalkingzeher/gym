@@ -1,8 +1,7 @@
 const { Op } = require("sequelize");
 const GymAdminAndGym = require("../models/gymAdminAndGym");
 const User = require("../models/user");
-const Gyms = require("../models/gym");
-
+const Gym = require("../models/gym");
 
 /**
  * @swagger
@@ -76,11 +75,9 @@ exports.createGymAdminAndGym = async (req, res) => {
 
   // Check if the current user is an admin
   if (currentUser.type !== "admin") {
-    return res
-      .status(401)
-      .json({
-        error: "Unauthorized, only admin user can create the relationship",
-      });
+    return res.status(401).json({
+      error: "Unauthorized, only admin user can create the relationship",
+    });
   }
 
   const { gymAdminId, gymId } = req.body;
@@ -170,11 +167,9 @@ exports.getAllGymAdminAndGyms = async (req, res) => {
 
   // Check if the current user is an admin
   if (currentUser.type !== "admin") {
-    return res
-      .status(401)
-      .json({
-        error: "Unauthorized, only admin user can fetch the relationships",
-      });
+    return res.status(401).json({
+      error: "Unauthorized, only admin user can fetch the relationships",
+    });
   }
 
   try {
@@ -183,12 +178,14 @@ exports.getAllGymAdminAndGyms = async (req, res) => {
     const response = await Promise.all(
       relationships.map(async (relationship) => {
         const gymAdmin = await User.findByPk(relationship.gymAdminId);
-        const gym = await Gyms.findByPk(relationship.gymId);
+        const gym = await Gym.findByPk(relationship.gymId);
+
+        gymAdmin;
 
         return {
           ...relationship.get({ plain: true }),
-          gymAdmin: gymAdmin.username,
-          gym: gym.name,
+          gymAdminDetails: gymAdmin,
+          gymDetails: gym,
         };
       })
     );
@@ -266,7 +263,8 @@ exports.getGymAdminsOfGym = async (req, res) => {
     const gymAdmins = await Promise.all(
       relationships.map(async (relationship) => {
         const gymAdmin = await User.findByPk(relationship.gymAdminId);
-        return { gymAdminId: gymAdmin.id, gymAdmin: gymAdmin.username };
+        gymAdmin.password = undefined;
+        return { gymAdminId: gymAdmin.id, gymAdminDetails: gymAdmin };
       })
     );
 
@@ -345,8 +343,8 @@ exports.getGymsOfGymAdmin = async (req, res) => {
 
     const gyms = await Promise.all(
       relationships.map(async (relationship) => {
-        const gym = await Gyms.findByPk(relationship.gymId);
-        return { gymId: gym.id, gym: gym.name };
+        const gym = await Gym.findByPk(relationship.gymId);
+        return { gymId: gym.id, gymDetails: gym };
       })
     );
 
