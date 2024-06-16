@@ -44,10 +44,10 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m venv venv
-        source venv/bin/activate
-        pip install requests
+        pip install --upgrade pip
+        pip install -r api/requirements.txt  # Install dependencies from requirements.txt
 
     - name: Run tests
       run: |
-        source venv/bin/activate
+        source venv/bin/activate && \
         python -m unittest discover -s api/testcases -p "*.py"
