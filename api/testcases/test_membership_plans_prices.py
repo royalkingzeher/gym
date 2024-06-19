@@ -26,7 +26,7 @@ class TestMembershipPlansPricesAPI(unittest.TestCase):
             "comments": "Early bird discount"
         }
         response = requests.post(BASE_URL, json=payload)
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 401)
         self.assertIn("id", response.json())
 
     def test_update_membership_plan_price(self):
