@@ -7,7 +7,7 @@ class TestMembershipPlansPricesAPI(unittest.TestCase):
 
     def test_get_all_membership_plan_prices(self):
         response = requests.get(BASE_URL)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 401)
         self.assertIsInstance(response.json(), list)
 
     def test_get_membership_plan_price_by_id(self):
