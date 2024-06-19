@@ -220,15 +220,94 @@ exports.createGym = async (req, res) => {
  *     tags: [Gyms]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of gyms per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: name
+ *           enum: [name, address, city, state, country, phone_number, email, contact_person]
+ *         description: Column to sort by
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           default: asc
+ *           enum: [asc, desc]
+ *         description: Order of sorting (ascending or descending)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to filter gyms by name, address, city, state, country, phone_number, email, or contact_person
+ *       - in: query
+ *         name: address
+ *         schema:
+ *           type: string
+ *         description: Filter gyms by address
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: Filter gyms by city
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: Filter gyms by state
+ *       - in: query
+ *         name: country
+ *         schema:
+ *           type: string
+ *         description: Filter gyms by country
+ *       - in: query
+ *         name: phone_number
+ *         schema:
+ *           type: string
+ *         description: Filter gyms by phone number
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Filter gyms by email
+ *       - in: query
+ *         name: contact_person
+ *         schema:
+ *           type: string
+ *         description: Filter gyms by contact person
  *     responses:
  *       200:
  *         description: List of gyms
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Gym'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Gym'
+ *                 meta:
+ *                   type: object
+ *                   properties:
+ *                     totalItems:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     currentPage:
+ *                       type: integer
  *       401:
  *         description: Unauthorized, only admin user can view gyms
  *       500:
@@ -241,10 +320,86 @@ exports.getAllGyms = async (req, res) => {
     return res.status(401).send("Unauthorized, only admin user can view gyms");
   }
 
+  // Extract query parameters and provide sensible defaults
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "name",
+    order = "asc",
+    search = "",
+    ...filters
+  } = req.query;
+
+  // Convert page and limit to numbers and validate them
+  const pageNumber = isNaN(parseInt(page, 10))
+    ? 1
+    : Math.max(1, parseInt(page, 10));
+  const limitNumber = isNaN(parseInt(limit, 10))
+    ? 10
+    : Math.max(1, parseInt(limit, 10));
+  const offset = (pageNumber - 1) * limitNumber;
+
+  // Construct sorting condition
+  const validColumns = [
+    "name",
+    "address",
+    "city",
+    "state",
+    "country",
+    "phone_number",
+    "email",
+    "contact_person",
+  ];
+  const sanitizedSortBy = validColumns.includes(sortBy) ? sortBy : "name";
+  const orderCondition = [
+    [sanitizedSortBy, order.toLowerCase() === "desc" ? "desc" : "asc"],
+  ];
+
+  // Create filters condition
+  const filterConditions = Object.entries(filters).reduce(
+    (acc, [key, value]) => {
+      if (value && validColumns.includes(key)) {
+        acc[key] = { [Op.like]: `%${value}%` };
+      }
+      return acc;
+    },
+    {}
+  );
+
+  // Create search condition for all columns (only if search is not empty)
+  let searchCondition = {};
+  if (search) {
+    searchCondition = {
+      [Op.or]: validColumns.map((field) => ({
+        [field]: { [Op.like]: `%${search}%` },
+      })),
+    };
+  }
+
   try {
-    const gyms = await Gym.findAll();
-    res.status(200).send(gyms);
+    const { rows: gyms, count } = await Gym.findAndCountAll({
+      where: {
+        ...filterConditions,
+        ...searchCondition,
+      },
+      order: orderCondition,
+      limit: limitNumber,
+      offset,
+    });
+
+    // Calculate total pages
+    const totalPages = Math.ceil(count / limitNumber);
+
+    res.status(200).json({
+      data: gyms,
+      meta: {
+        totalItems: count,
+        totalPages,
+        currentPage: pageNumber,
+      },
+    });
   } catch (error) {
+    console.error(`Error fetching gyms: ${error.message}`);
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
