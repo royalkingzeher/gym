@@ -1,9 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
-const { getUserById } = require("../controllers/userController");
+const userController = require("../controllers/userController");
 
-// Route to get a user by ID
-router.get("/:userId", authMiddleware, getUserById);
+router.get("/:userId", authMiddleware, userController.getUserById);
+router.get("/", authMiddleware, userController.getAllUsers);
+router.put("/:userId", authMiddleware, userController.updateUser);
+router.delete("/:userId", authMiddleware, userController.deleteUser);
 
 module.exports = router;

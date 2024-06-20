@@ -79,7 +79,7 @@ const Gym = sequelize.define("Gym", {
     },
   },
   status: {
-    type: DataTypes.STRING,
+    type: DataTypes.ENUM("active", "inactive"),
     allowNull: false,
     defaultValue: "active",
   },

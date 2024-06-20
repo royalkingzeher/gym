@@ -1,9 +1,9 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../config/dbConfig");
+const sequelize = require("../config/dbConfig"); // Assuming you have a database configuration file
+const MembershipPlan = require("./gymMembershipPlan"); // Assuming the file path to MembershipPlan model
 
-// Define the MembershipPlansPrices model
-const MembershipPlansPrices = sequelize.define(
-  "MembershipPlansPrices",
+const MembershipPlansPrice = sequelize.define(
+  "MembershipPlansPrice",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -13,6 +13,10 @@ const MembershipPlansPrices = sequelize.define(
     membership_plan_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: MembershipPlan,
+        key: "id",
+      },
     },
     price: {
       type: DataTypes.DECIMAL(10, 2),
@@ -45,14 +49,9 @@ const MembershipPlansPrices = sequelize.define(
   }
 );
 
-// Attempt to synchronize the model with the database
-(async () => {
-  try {
-    await MembershipPlansPrices.sync();
-    console.log("MembershipPlansPrices model synchronized successfully.");
-  } catch (error) {
-    console.error("Error synchronizing MembershipPlansPrices model:", error);
-  }
-})();
+// Define associations
+MembershipPlansPrice.belongsTo(MembershipPlan, {
+  foreignKey: "membership_plan_id",
+});
 
-module.exports = MembershipPlansPrices;
+module.exports = MembershipPlansPrice;

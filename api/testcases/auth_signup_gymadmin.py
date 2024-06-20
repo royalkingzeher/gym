@@ -3,51 +3,45 @@ import requests
 import random
 import string
 
-class TestSignupGymAdmin(unittest.TestCase):
-    def setUp(self):
-        # Login as admin to get a token
-        login_response = requests.post('http://localhost:3000/api/login', json={
-            'username': 'gymsoftware',
-            'password': 'gymsoftware'
-        })
-        
-        self.assertEqual(login_response.status_code, 200, "Login failed")
-        
-        login_data = login_response.json()
-        self.token = login_data.get('token')
-        self.assertIsNotNone(self.token, "Token not received")
+BASE_URL = "http://localhost:3000/api"
 
-    def test_signup_gymadmin(self):
-        # Generate random data
-        random_username = 'gymadmin_' + ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-        random_password = 'pass' + ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-        random_email = random_username + '@example.com'
-        random_phone = ''.join(random.choices(string.digits, k=10))
+def test_signup_gymadmin_success(auth_token):
+    payload = {
+        "username": "newgymadmin",
+        "password": "password123",
+        "firstName": "John",
+        "lastName": "Doe",
+        "email": "john.doe@example.com",
+        "phone": "1234567890",
+        "address": "123 Main St",
+        "city": "Anytown",
+        "state": "CA",
+        "pincode": "12345",
+        "country": "USA",
+        "dateOfBirth": "1990-01-01",
+        "gender": "male",
+        "profilePicture": "url/to/pic",
+        "emergencyContactName": "Jane Doe",
+        "emergencyContactRelationship": "Wife",
+        "emergencyContactPhone": "0987654321",
+        "emergencyContactEmail": "jane.doe@example.com"
+    }
+    headers = {
+        "Authorization": f"Bearer {auth_token}"
+    }
+    response = requests.post(f"{BASE_URL}/signup/gymadmin", json=payload, headers=headers)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Gym admin user created successfully"
 
-        # Send POST request
-        response = requests.post('http://localhost:3000/api/signup/gymadmin', json={
-            'username': random_username,
-            'password': random_password,
-            'firstName': 'FirstName',
-            'lastName': 'LastName',
-            'email': random_email,
-            'phone': random_phone,
-            'address': 'Address',
-            'city': 'City',
-            'state': 'State',
-            'pincode': '123456',
-            'country': 'Country',
-            'dateOfBirth': '2000-01-01',
-            'gender': 'male',
-            'profilePicture': 'ProfilePicture',
-            'emergencyContactName': 'EmergencyContact',
-            'emergencyContactRelationship': 'Friend',
-            'emergencyContactPhone': '1234567890',
-            'emergencyContactEmail': 'emergency@example.com'
-        }, headers={'Authorization': f'Bearer {self.token}'})
-
-        # Assert status code
-        self.assertEqual(response.status_code, 200)
-
-if __name__ == '__main__':
-    unittest.main()
+def test_signup_gymadmin_forbidden(auth_token_non_admin):
+    payload = {
+        "username": "newgymadmin",
+        "password": "password123",
+        "firstName": "John",
+    }
+    headers = {
+        "Authorization": f"Bearer {auth_token_non_admin}"
+    }
+    response = requests.post(f"{BASE_URL}/signup/gymadmin", json=payload, headers=headers)
+    assert response.status_code == 403
+    assert response.text == "Forbidden, only admin user can create gym admin user"

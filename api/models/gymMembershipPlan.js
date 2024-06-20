@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig"); // Assuming you have a database configuration file
+const Gym = require("./gym"); // Assuming the file path to Gym model
 
 const MembershipPlan = sequelize.define("MembershipPlan", {
   id: {
@@ -10,6 +11,10 @@ const MembershipPlan = sequelize.define("MembershipPlan", {
   gym_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: Gym,
+      key: "id",
+    },
   },
   plan_name: {
     type: DataTypes.STRING,
@@ -31,6 +36,12 @@ const MembershipPlan = sequelize.define("MembershipPlan", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+});
+
+
+// Define associations
+MembershipPlan.belongsTo(Gym, {
+  foreignKey: "gym_id",
 });
 
 module.exports = MembershipPlan;

@@ -112,6 +112,14 @@ const User = sequelize.define("User", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  status: {
+    type: DataTypes.ENUM("active", "inactive"),
+    allowNull: false,
+    defaultValue: "active", // Set default value if needed
+    validate: {
+      notNull: true, // Ensure status is not null
+    },
+  },
 });
 
 module.exports = User;

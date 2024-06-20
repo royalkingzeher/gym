@@ -1,21 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
-const {
-  createGym,
-  getAllGyms,
-  getGymById,
-  getGymByParameter,
-  updateGymById,
-  getGymForCurrentUser,
-} = require("../controllers/gymController");
+const gymController = require("../controllers/gymController");
 
-// Routes with added validation
-router.post("/", authMiddleware, createGym);
-router.get("/", authMiddleware, getAllGyms);
-router.get("/:id", authMiddleware, getGymById);
-router.post("/search", authMiddleware, getGymByParameter);
-router.put("/:id", authMiddleware, updateGymById);
-router.post("/currentUserGym", authMiddleware, getGymForCurrentUser);
+// Route to create a new gym
+router.post("/", authMiddleware, gymController.createGym);
+
+// Route to get all gyms
+router.get("/", authMiddleware, gymController.getAllGyms);
+
+// Route to get a gym by its ID
+router.get("/:id", authMiddleware, gymController.getGymById);
+
+// Route to update a gym by its ID
+router.put("/:id", authMiddleware, gymController.updateGymById);
+
+// Route to delete a gym by its ID
+router.delete("/:id", authMiddleware, gymController.deleteGymById);
 
 module.exports = router;

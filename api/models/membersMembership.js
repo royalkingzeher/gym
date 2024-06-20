@@ -1,5 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig"); // Your database configuration
+const User = require("./user");
+const MembershipPlan = require("./gymMembershipPlan");
 
 const MembersMembership = sequelize.define(
   "MembersMembership",
@@ -12,7 +14,7 @@ const MembersMembership = sequelize.define(
     gym_member_id: {
       type: DataTypes.INTEGER,
       references: {
-        model: "User",
+        model: User,
         key: "id",
       },
       allowNull: false,
@@ -20,7 +22,7 @@ const MembersMembership = sequelize.define(
     membership_plan_id: {
       type: DataTypes.INTEGER,
       references: {
-        model: "MembershipPlan",
+        model: MembershipPlan,
         key: "id",
       },
       allowNull: false,
@@ -47,5 +49,14 @@ const MembersMembership = sequelize.define(
     timestamps: true,
   }
 );
+
+// Define associations
+MembersMembership.belongsTo(User, {
+  foreignKey: "gym_member_id",
+});
+
+MembersMembership.belongsTo(MembershipPlan, {
+  foreignKey: "membership_plan_id",
+});
 
 module.exports = MembersMembership;

@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../config/dbConfig");
+const sequelize = require("../config/dbConfig"); // Your database configuration
+const User = require("./user");
 
 const DietPlans = sequelize.define(
   "DietPlans",
@@ -12,7 +13,7 @@ const DietPlans = sequelize.define(
     gym_member_id: {
       type: DataTypes.INTEGER,
       references: {
-        model: "Users",
+        model: User,
         key: "id",
       },
       allowNull: false,

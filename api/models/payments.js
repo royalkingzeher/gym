@@ -1,5 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig"); // Your database configuration
+const User = require("./user");
+const MembershipPlan = require("./gymMembershipPlan");
 
 const Payments = sequelize.define(
   "Payments",
@@ -12,9 +14,25 @@ const Payments = sequelize.define(
     gym_member_id: {
       type: DataTypes.INTEGER,
       references: {
-        model: "User",
+        model: User,
         key: "id",
       },
+      allowNull: false,
+    },
+    membership_plan_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: MembershipPlan,
+        key: "id",
+      },
+      allowNull: false,
+    },
+    start_date: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    end_date: {
+      type: DataTypes.DATE,
       allowNull: false,
     },
     payment_date: {
@@ -55,5 +73,14 @@ const Payments = sequelize.define(
     timestamps: true,
   }
 );
+
+// Define associations
+Payments.belongsTo(User, {
+  foreignKey: "gym_member_id",
+});
+
+Payments.belongsTo(MembershipPlan, {
+  foreignKey: "membership_plan_id",
+});
 
 module.exports = Payments;

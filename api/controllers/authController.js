@@ -7,6 +7,13 @@ const Gym = require("../models/gym");
 
 /**
  * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Authentication Endpoints
+ */
+
+/**
+ * @swagger
  * /api/signup/admin:
  *   post:
  *     summary: Sign up a new admin user
@@ -22,6 +29,7 @@ const Gym = require("../models/gym");
  *                 type: string
  *               password:
  *                 type: string
+ *                 minLength: 8  # Password must be at least 8 characters long
  *     responses:
  *       200:
  *         description: The admin user was successfully created
@@ -85,6 +93,7 @@ exports.signupAdmin = async (req, res) => {
  *                 type: string
  *               password:
  *                 type: string
+ *                 minLength: 8  # Password must be at least 8 characters long
  *               firstName:
  *                 type: string
  *               lastName:
@@ -238,6 +247,7 @@ exports.signupGymAdmin = async (req, res) => {
  *                 type: string
  *               password:
  *                 type: string
+ *                 minLength: 8  # Password must be at least 8 characters long
  *               firstName:
  *                 type: string
  *               lastName:
@@ -391,6 +401,7 @@ exports.signupGymMember = async (req, res) => {
  *                 type: string
  *               password:
  *                 type: string
+ *                 minLength: 8  # Password must be at least 8 characters long
  *     responses:
  *       200:
  *         description: The user was successfully logged in
@@ -413,7 +424,7 @@ exports.login = async (req, res) => {
     });
     res.send({ token });
   } catch (error) {
-    res.status(500).send("Internal server error");
+    res.status(500).send(error);
   }
 };
 

@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig"); // Your database configuration
+const User = require("./user");
 
 const WorkoutPlans = sequelize.define(
   "WorkoutPlans",
@@ -12,7 +13,7 @@ const WorkoutPlans = sequelize.define(
     gym_member_id: {
       type: DataTypes.INTEGER,
       references: {
-        model: "User",
+        model: User,
         key: "id",
       },
       allowNull: false,
@@ -26,7 +27,7 @@ const WorkoutPlans = sequelize.define(
       allowNull: true,
     },
     workout_plan_chart: {
-      type: DataTypes.TEXT,
+      type: DataTypes.JSON,
       allowNull: true,
     },
     createdAt: {
@@ -43,5 +44,10 @@ const WorkoutPlans = sequelize.define(
     timestamps: true,
   }
 );
+
+// Define associations
+WorkoutPlans.belongsTo(User, {
+  foreignKey: "gym_member_id",
+});
 
 module.exports = WorkoutPlans;
