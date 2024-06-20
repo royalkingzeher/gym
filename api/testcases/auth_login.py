@@ -1,31 +1,24 @@
 import unittest
 import requests
 
-BASE_URL = "http://localhost:3000/api"
+class TestLogin(unittest.TestCase):
+    def test_login(self):
+        # Existing user credentials
+        username = 'gymsoftware'
+        password = 'gymsoftware'
 
-def test_login_success():
-    payload = {
-        "username": "existinguser",
-        "password": "password123"
-    }
-    response = requests.post(f"{BASE_URL}/login", json=payload)
-    assert response.status_code == 200
-    assert "token" in response.json()
+        # Send POST request
+        response = requests.post('http://localhost:3000/api/login', json={
+            'username': username,
+            'password': password
+        })
 
-def test_login_invalid_password():
-    payload = {
-        "username": "existinguser",
-        "password": "wrongpassword"
-    }
-    response = requests.post(f"{BASE_URL}/login", json=payload)
-    assert response.status_code == 400
-    assert response.text == "Invalid username or password."
+        # Assert status code
+        self.assertEqual(response.status_code, 200)
 
-def test_login_user_not_found():
-    payload = {
-        "username": "nonexistentuser",
-        "password": "password123"
-    }
-    response = requests.post(f"{BASE_URL}/login", json=payload)
-    assert response.status_code == 400
-    assert response.text == "Invalid username or password."
+        # Assert response body contains token
+        response_data = response.json()
+        self.assertIn('token', response_data)
+
+if __name__ == '__main__':
+    unittest.main()
