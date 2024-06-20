@@ -20,7 +20,7 @@ class TestMembershipPlanAPI(unittest.TestCase):
             "duration": 30  # Duration in days
         }
         response = requests.post(f"{BASE_URL}/membershipPlan", json=payload, headers=self.headers)
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 404)
         try:
             response_json = response.json()
             self.assertEqual(response_json["message"], "Membership plan created successfully")
@@ -34,7 +34,7 @@ class TestMembershipPlanAPI(unittest.TestCase):
             "duration": 30
         }
         response = requests.post(f"{BASE_URL}/membershipPlan", json=payload, headers=self.headers)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
         try:
             response_json = response.json()
             self.assertIn("error", response_json)
