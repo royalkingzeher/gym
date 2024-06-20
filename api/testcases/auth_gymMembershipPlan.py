@@ -1,50 +1,72 @@
 import unittest
+from unittest.mock import patch, MagicMock
 import requests
 
-BASE_URL = "http://localhost:3000/api"
+BASE_URL = "http://localhost:3000/api/gymMembershipPlans"
 
-class TestMembershipPlanAPI(unittest.TestCase):
-    
-    def setUp(self):
-        self.auth_token = "your_auth_token_here"
-        self.headers = {
-            "Authorization": f"Bearer {self.auth_token}",
-            "Content-Type": "application/json"
+def get_membership_plan_by_id(plan_id):
+    url = f"{BASE_URL}/{plan_id}"
+    response = requests.get(url)
+    return response
+
+class TestGetMembershipPlanById(unittest.TestCase):
+
+    @patch('requests.get')
+    def test_get_membership_plan_by_id_success(self, mock_get):
+        plan_id = 1
+        expected_response = {
+            "id": 1,
+            "gym_id": 1,
+            "plan_name": "Basic Plan",
+            "plan_description": "Access to gym facilities",
+            "duration_type": "months",
+            "duration_value": 12,
+            "category": "standard"
         }
+        
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = expected_response
+        
+        response = get_membership_plan_by_id(plan_id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), expected_response)
 
-    def test_create_membership_plan_success(self):
-        payload = {
-            "name": "Basic Plan",
-            "description": "Access to gym facilities",
-            "price": 49.99,
-            "duration": 30  # Duration in days
+    @patch('requests.get')
+    def test_get_membership_plan_by_id_unauthorized(self, mock_get):
+        plan_id = 2
+        
+        mock_get.return_value.status_code = 401
+        mock_get.return_value.json.return_value = {
+            "error": "Unauthorized, only admin or gym_admin can fetch membership plan details."
         }
-        response = requests.post(f"{BASE_URL}/membershipPlan", json=payload, headers=self.headers)
-        self.assertEqual(response.status_code, 404)
-        try:
-            response_json = response.json()
-            self.assertEqual(response_json["message"], "Membership plan created successfully")
-        except ValueError:
-            self.fail("Response is not in JSON format")
+        
+        response = get_membership_plan_by_id(plan_id)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(), {
+            "error": "Unauthorized, only admin or gym_admin can fetch membership plan details."
+        })
 
-    def test_create_membership_plan_missing_name(self):
-        payload = {
-            "description": "Access to gym facilities",
-            "price": 49.99,
-            "duration": 30
-        }
-        response = requests.post(f"{BASE_URL}/membershipPlan", json=payload, headers=self.headers)
+    @patch('requests.get')
+    def test_get_membership_plan_by_id_not_found(self, mock_get):
+        plan_id = 999  # assuming 999 is a non-existent plan ID
+        
+        mock_get.return_value.status_code = 404
+        mock_get.return_value.json.return_value = {"error": "Membership plan not found"}
+        
+        response = get_membership_plan_by_id(plan_id)
         self.assertEqual(response.status_code, 404)
-        try:
-            response_json = response.json()
-            self.assertIn("error", response_json)
-            self.assertEqual(response_json["error"], "Name is required.")
-        except ValueError:
-            self.fail("Response is not in JSON format")
+        self.assertEqual(response.json(), {"error": "Membership plan not found"})
 
-    def test_api_response(self):
-        response = requests.get("http://localhost:3000/api/endpoint")
-        self.assertEqual(response.status_code, 404)
+    @patch('requests.get')
+    def test_get_membership_plan_by_id_server_error(self, mock_get):
+        plan_id = 3
+        
+        mock_get.return_value.status_code = 500
+        mock_get.return_value.json.return_value = {"error": "Internal server error"}
+        
+        response = get_membership_plan_by_id(plan_id)
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json(), {"error": "Internal server error"})
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
