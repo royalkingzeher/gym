@@ -3,10 +3,11 @@ const sequelize = require("./config/dbConfig");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const gymRoutes = require("./routes/gymRoutes");
-const gymAdminAndGymRoutes = require("./routes/gymAdminAndGymRoutes");
+const gymAndGymAdminRoutes = require("./routes/gymAndGymAdminRoutes");
+const gymAndGymMemberRoutes = require("./routes/gymAndGymMemberRoutes");
 const gymMembershipPlanRoutes = require("./routes/gymMembershipPlanRoutes");
-const dietPlanRoutes = require("./routes/dietPlanRoutes");
-const membershipPlansPricesRoutes = require("./routes/membershipPlansPricesRoutes");
+const membershipPlansPriceRoutes = require("./routes/membershipPlansPriceRoutes");
+const membersMembershipRoutes = require("./routes/membersMembershipRoutes");
 const swaggerConfig = require("./config/swaggerConfig");
 require("dotenv").config();
 
@@ -24,10 +25,15 @@ app.use(express.json());
 app.use("/api", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/gym", gymRoutes);
-app.use("/api/gymAdminAndGym", gymAdminAndGymRoutes);
+app.use("/api/gymAndGymAdmin", gymAndGymAdminRoutes);
+app.use("/api/gymAndGymMember", gymAndGymMemberRoutes);
 app.use("/api/gymMembershipPlans", gymMembershipPlanRoutes);
-app.use("/api/diet-plans", dietPlanRoutes);
-app.use("/api/membership-plans-prices", membershipPlansPricesRoutes);
+app.use("/api/membershipPlansPrices", membershipPlansPriceRoutes);
+app.use("/api/membersMemberships", membersMembershipRoutes);
+
+app.get("/", (req, res) => {
+  res.send("Welcome to Gym Management API 1.0");
+});
 
 // Swagger configuration
 swaggerConfig(app);
@@ -39,8 +45,8 @@ sequelize
   .then(() => {
     console.log("Database connection has been established successfully.");
 
-    // Sync database models with Sequelize in the correct order
-    sequelize.sync({ alter: true }).then(() => {
+    // Sync database models with Sequelize
+    sequelize.sync().then(() => {
       app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
       });
