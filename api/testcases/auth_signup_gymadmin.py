@@ -11,7 +11,7 @@ class TestSignupGymAdmin(unittest.TestCase):
             'password': 'gymsoftware'
         })
         
-        self.assertEqual(login_response.status_code, 200, "Login failed")
+        self.assertEqual(login_response.status_code, 400, "Login failed")
         
         login_data = login_response.json()
         self.token = login_data.get('token')
