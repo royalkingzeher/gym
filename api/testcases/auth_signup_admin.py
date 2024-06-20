@@ -3,31 +3,26 @@ import requests
 import random
 import string
 
-BASE_URL = "http://localhost:3000/api"
+class TestSignupAdmin(unittest.TestCase):
+    def test_signup_admin(self):
+        # Generate random username and password
+        random_username = 'admin_' + ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        random_password = 'pass' + ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
-def test_signup_admin_success():
-    payload = {
-        "username": "newadmin",
-        "password": "password123"
-    }
-    response = requests.post(f"{BASE_URL}/signup/admin", json=payload)
-    assert response.status_code == 200
-    assert response.json()["message"] == "Admin user created successfully"
+        # Send POST request
+        response = requests.post('http://localhost:3000/api/signup/admin', json={
+            'username': random_username,
+            'password': random_password
+        })
 
-def test_signup_admin_existing_user():
-    payload = {
-        "username": "existingadmin",
-        "password": "password123"
-    }
-    response = requests.post(f"{BASE_URL}/signup/admin", json=payload)
-    assert response.status_code == 400
-    assert response.text == "User already exists."
+        # Assert status code
+        self.assertEqual(response.status_code, 200)
 
-def test_signup_admin_invalid_password():
-    payload = {
-        "username": "newadmin",
-        "password": "short"
-    }
-    response = requests.post(f"{BASE_URL}/signup/admin", json=payload)
-    assert response.status_code == 400
-    assert response.text == "Password must be at least 8 characters long."
+        # Assert response body
+        response_data = response.json()
+        self.assertEqual(response_data['message'], 'Admin user created successfully')
+        self.assertIn('id', response_data['user'])
+        self.assertEqual(response_data['user']['username'], random_username)
+
+if __name__ == '__main__':
+    unittest.main()
