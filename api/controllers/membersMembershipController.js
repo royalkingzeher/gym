@@ -1,4 +1,4 @@
-const MembersMembership = require("../models/MembersMembership");
+const MembersMembership = require("../models/membersMembership");
 const User = require("../models/user");
 const MembershipPlan = require("../models/gymMembershipPlan");
 const { Op } = require("sequelize");
