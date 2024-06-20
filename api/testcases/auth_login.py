@@ -16,12 +16,15 @@ class TestLogin(unittest.TestCase):
         # Assert status code
         self.assertEqual(response.status_code, 400)
 
-        # Check if response content is not empty and is in JSON format
+        # Check if response content is not empty
         self.assertTrue(response.content, "Response content is empty")
-        
+
+        # Try to parse the response as JSON
         try:
             response_data = response.json()
         except requests.exceptions.JSONDecodeError:
+            # Print the actual response content for debugging
+            print("Response content:", response.content)
             self.fail("Response is not in JSON format")
 
         # Assert response body contains token
