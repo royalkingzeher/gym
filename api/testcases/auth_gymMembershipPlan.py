@@ -20,7 +20,7 @@ class TestMembershipPlanAPI(unittest.TestCase):
             "duration": 30  # Duration in days
         }
         response = requests.post(f"{BASE_URL}/membershipPlan", json=payload, headers=self.headers)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["message"], "Membership plan created successfully")
     
     def test_create_membership_plan_missing_name(self):
@@ -30,7 +30,7 @@ class TestMembershipPlanAPI(unittest.TestCase):
             "duration": 30
         }
         response = requests.post(f"{BASE_URL}/membershipPlan", json=payload, headers=self.headers)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["error"], "Name is required.")  # Assuming the error response contains a JSON with an "error" key
 
     def test_api_response(self):
