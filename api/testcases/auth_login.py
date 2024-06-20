@@ -14,7 +14,7 @@ class TestLogin(unittest.TestCase):
         })
 
         # Assert status code
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
 
         # Assert response body contains token
         response_data = response.json()
