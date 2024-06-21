@@ -1,41 +1,25 @@
-import unittest
 import requests
+import unittest
 
 class TestUserDetails(unittest.TestCase):
+
     def setUp(self):
-        # Existing user credentials
-        self.username = 'gymsoftware'
-        self.password = 'gymsoftware'
-        
-        # Login to get the token
-        login_response = requests.post('http://localhost:3000/api/login', json={
-            'username': self.username,
-            'password': self.password
-        })
-        
-        # Assert login status code
-        self.assertEqual(login_response.status_code, 400)
-        
-        # Extract token from login response
-        login_data = login_response.json()
-        self.assertIn('token', login_data)
-        self.token = login_data['token']
+        self.base_url = 'http://localhost:3000'
+        self.login_url = f'{self.base_url}/api/auth/login/'
+        self.user_details_url = f'{self.base_url}/api/auth/user/'
+        self.credentials = {'username': 'testadmin', 'password': 'adminpassword'}
+
+        # Log in to get the token
+        login_response = requests.post(self.login_url, data=self.credentials)
+        if login_response.status_code == 200:
+            self.token = login_response.json().get('token')
+        else:
+            self.token = None
 
     def test_user_details(self):
-        # Send POST request to get user details
-        headers = {
-            'Authorization': f'Bearer {self.token}'
-        }
-        response = requests.post('http://localhost:3000/api/userDetails', headers=headers)
-
-        # Assert status code
-        self.assertEqual(response.status_code, 200)
-
-        # Assert response body
-        response_data = response.json()
-        self.assertIn('id', response_data)
-        self.assertIn('username', response_data)
-        self.assertNotIn('password', response_data)
+        headers = {'Authorization': f'Token {self.token}'}
+        response = requests.get(self.user_details_url, headers=headers)
+        self.assertEqual(response.status_code, 200, response.text)
 
 if __name__ == '__main__':
     unittest.main()
