@@ -13,14 +13,13 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             "price": 99.99,
             "validity_start_date": "2024-06-25",
             "validity_end_date": "2024-07-25",
-            "comments": "Sample comments"
+            "comments": "Annually"
         }
 
         # Make a POST request to create a new membership plan price
         response = requests.post(url, json=data)
 
         # Assert the status code and response content
-        self.assertIn(response.status_code, [201, 400, 500])
         if response.status_code == 201:
             # Successful creation
             self.assertIn("id", response.json())
@@ -36,9 +35,9 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             # Internal server error
             self.assertIn("Internal server error", response.text)
 
-        elif response.status_code == 401:
-            # Unauthorized access
-            self.fail("Unauthorized access", response.text)
+        else:
+            # Handle unexpected status codes
+            self.fail(f"Unexpected status code: {response.status_code}. Response text: {response.text}")
 
 if __name__ == "__main__":
     unittest.main()
