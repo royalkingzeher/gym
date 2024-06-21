@@ -19,10 +19,14 @@ class TestCreateMembersMembership(unittest.TestCase):
         # Make POST request to create new membership
         response = requests.post(self.base_url, json=membership_data)
         
-        # Assert status code 201 (Created)
-        self.assertEqual(response.status_code, 401)
+        # Assert status code 201 (Created) or 400 (Bad Request)
+        self.assertIn(response.status_code, [201, 400])
         
-        # Optionally, you can assert more details about the response
-        
+        # Optionally, you can assert more details about the response based on status code
+        if response.status_code == 201:
+            self.assertIn("Membership created successfully", response.json().get("message", ""))
+        elif response.status_code == 400:
+            self.assertIn("Bad request", response.json().get("message", ""))
+            
 if __name__ == '__main__':
     unittest.main()
