@@ -12,8 +12,8 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             "membership_plan_id": 1,
             "price": 99.99,
             "validity_start_date": "2024-06-25",
-            "validity_end_date": "2025-06-25",
-            "comments": "Annually"
+            "validity_end_date": "2024-07-25",
+            "comments": "Sample comments"
         }
 
         # Make a POST request to create a new membership plan price
