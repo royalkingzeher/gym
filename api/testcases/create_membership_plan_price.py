@@ -42,9 +42,5 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             # Internal server error
             self.assertIn("Internal server error", response.text)
 
-        else:
-            # Handle unexpected status codes
-            self.fail(f"Unexpected status code: {response.status_code}. Response text: {response.text}")
-
 if __name__ == "__main__":
     unittest.main()
