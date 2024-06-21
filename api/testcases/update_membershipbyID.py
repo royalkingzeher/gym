@@ -26,7 +26,7 @@ class TestUpdateMembersMembershipById(unittest.TestCase):
         # Assert based on status code and handle different cases
         if response.status_code == 200:
             # Membership updated successfully
-            self.assertIn('Membership updated successfully')
+            self.assertIn('Membership updated successfully', response.text)
         elif response.status_code == 400:
             # Bad request (validation errors or overlapping dates)
             self.assertEqual(response.status_code, 400)
@@ -34,7 +34,7 @@ class TestUpdateMembersMembershipById(unittest.TestCase):
         elif response.status_code == 401:
             # Unauthorized access
             self.assertEqual(response.status_code, 401)
-            self.assertIn('Unauthorized')
+            self.assertIn('Unauthorized', t)
         elif response.status_code == 404:
             # Membership not found
             self.assertEqual(response.status_code, 404)
