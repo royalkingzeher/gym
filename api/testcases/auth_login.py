@@ -2,19 +2,20 @@ import unittest
 import requests
 
 class TestLogin(unittest.TestCase):
+    def setUp(self):
+        self.base_url = 'http://localhost:3000'
+        self.login_url = f'{self.base_url}/api/login'
+        self.credentials = {
+            'username': 'sanskar',
+            'password': 'string25'
+        }
+
     def test_login(self):
-        # Existing user credentials
-        username = 'gymsoftware'
-        password = 'gymsoftware'
-
         # Send POST request
-        response = requests.post('http://localhost:3000/api/login', json={
-            'username': username,
-            'password': password
-        })
+        response = requests.post(self.login_url, json=self.credentials)
 
-        # Assert status code
-        self.assertEqual(response.status_code, 400)
+        # Assert status code (Assuming successful login returns 200)
+        self.assertEqual(response.status_code, 200, "Expected status code 200 for successful login")
 
         # Check if response content is not empty
         self.assertTrue(response.content, "Response content is empty")
