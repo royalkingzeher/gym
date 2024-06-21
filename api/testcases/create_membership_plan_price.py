@@ -19,6 +19,10 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
         # Make a POST request to create a new membership plan price
         response = requests.post(url, json=data)
 
+        # Check if the response status code is 401 Unauthorized
+        if response.status_code == 401:
+            self.fail("Unauthorized access - ensure your request includes proper authentication.")
+
         # Assert the status code and response content
         self.assertIn(response.status_code, [201, 400, 500])
         if response.status_code == 201:
