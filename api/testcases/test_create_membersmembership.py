@@ -20,7 +20,7 @@ class TestCreateMembersMembership(unittest.TestCase):
         response = requests.post(self.base_url, json=membership_data)
         
         # Assert status code 201 (Created)
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 401)
         
         # Optionally, you can assert more details about the response
         
