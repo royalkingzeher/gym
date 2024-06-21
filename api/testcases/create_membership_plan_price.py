@@ -3,6 +3,7 @@ import requests
 
 class TestCreateMembershipPlanPrice(unittest.TestCase):
     base_url = "http://localhost:3000/api"  # Replace with your actual base URL
+    token = "your_bearer_token_here"  # Replace with your actual token
 
     def test_create_membership_plan_price_success(self):
         url = f"{self.base_url}/membershipPlansPrices"
@@ -16,8 +17,14 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             "comments": "Annually"
         }
 
+        # Headers with Bearer Token for authentication
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+
         # Make a POST request to create a new membership plan price
-        response = requests.post(url, json=data)
+        response = requests.post(url, json=data, headers=headers)
 
         # Check if the response status code is 401 Unauthorized
         if response.status_code == 401:
@@ -36,7 +43,6 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             # Bad request
             self.assertIn("Bad request", response.text)
 
-        
         elif response.status_code == 500:
             # Internal server error
             self.assertIn("Internal server error", response.text)
