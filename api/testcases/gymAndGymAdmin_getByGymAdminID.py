@@ -4,7 +4,7 @@ import unittest
 class TestGetGymsOfGymAdmin(unittest.TestCase):
 
     def setUp(self):
-        self.base_url = 'http://localhost:8000'
+        self.base_url = 'http://localhost:3000'
         self.login_url = f'{self.base_url}/api/auth/login/'
         self.credentials = {'username': 'testadmin', 'password': 'adminpassword'}
         self.gymadmin_id = 22  # Replace with a valid gymadmin_id
