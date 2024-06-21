@@ -3,6 +3,7 @@ import requests
 
 class TestCreateMembershipPlanPrice(unittest.TestCase):
     base_url = "http://localhost:3000/api"  # Replace with your actual base URL
+    auth_token = "your_auth_token_here"  # Replace with a valid JWT token or auth mechanism
 
     def test_create_membership_plan_price_success(self):
         url = f"{self.base_url}/membershipPlansPrices"
@@ -16,8 +17,14 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             "comments": "Annually"
         }
 
-        # Make a POST request to create a new membership plan price
-        response = requests.post(url, json=data)
+        # Define headers with authentication token
+        headers = {
+            "Authorization": f"Bearer {self.auth_token}",
+            "Content-Type": "application/json"
+        }
+
+        # Make a POST request to create a new membership plan price with headers
+        response = requests.post(url, json=data, headers=headers)
 
         # Assert the status code and response content
         if response.status_code == 201:
