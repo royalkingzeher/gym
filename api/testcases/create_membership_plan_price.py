@@ -20,8 +20,8 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
         response = requests.post(url, json=data)
 
         # Assert the status code and response content
-        self.assertIn(response.status_code, [201, 400, 500])
-        if response.status_code == 201:
+        self.assertIn(response.status_code, [200, 400, 500])
+        if response.status_code == 200:
             # Successful creation
             self.assertIn("id", response.json())
             self.assertEqual(response.json()["membership_plan_id"], data["membership_plan_id"])
