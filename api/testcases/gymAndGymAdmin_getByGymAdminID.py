@@ -1,25 +1,25 @@
-import unittest
 import requests
+import unittest
 
 class TestGetGymsOfGymAdmin(unittest.TestCase):
-    def test_get_gyms_of_gym_admin(self):
-        # Existing user credentials
-        username = 'gymsoftware'
-        password ='gymsoftware'
-        # Send POST request
-        response = requests.post('http://localhost:3000/api/login', json={
-            'username': username,
-            'password': password
-        })
-        # Assert status code
-        self.assertEqual(response.status_code, 400)
-        self.token = response.json().get('token')
-        self.headers = {'Authorization': f'Bearer {self.token}'}
-        # Send GET request to retrieve all gym admin and gym relationships
-        response = requests.get('http://localhost:3000/api/gymAndGymAdmin/gyms/2', headers=self.headers)
 
-        # Assert status code
-        self.assertEqual(response.status_code, 200)
-        
+    def setUp(self):
+        self.base_url = 'http://localhost:3000'
+        self.login_url = f'{self.base_url}/api/auth/login/'
+        self.get_by_gymadmin_url = f'{self.base_url}/api/gym/gymadmin/{gymadmin_id}/'
+        self.credentials = {'username': 'testadmin', 'password': 'adminpassword'}
+
+        # Log in to get the token
+        login_response = requests.post(self.login_url, data=self.credentials)
+        if login_response.status_code == 200:
+            self.token = login_response.json().get('token')
+        else:
+            self.token = None
+
+    def test_get_gyms_of_gym_admin(self):
+        headers = {'Authorization': f'Token {self.token}'}
+        response = requests.get(self.get_by_gymadmin_url, headers=headers)
+        self.assertEqual(response.status_code, 200, response.text)
+
 if __name__ == '__main__':
     unittest.main()
