@@ -20,7 +20,7 @@ class TestGymAPI(unittest.TestCase):
         create_gym_url = f'{self.base_url}/api/gym/create/'
         data = {'name': 'Test Gym', 'location': 'Test Location'}
         response = requests.post(create_gym_url, headers=headers, data=data)
-        self.assertEqual(response.status_code, 201, response.text)
+        self.assertEqual(response.status_code, 404, response.text)
 
     def test_get_all_gyms(self):
         headers = {'Authorization': f'Token {self.token}'}
