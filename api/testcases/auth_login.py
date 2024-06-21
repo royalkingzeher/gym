@@ -24,11 +24,11 @@ class TestLogin(unittest.TestCase):
             response_data = response.json()
         except requests.exceptions.JSONDecodeError:
             # Print the actual response content for debugging
-            print("Response content:", response.content)
+            print("Response content (not JSON):", response.content.decode('utf-8'))
             self.fail("Response is not in JSON format")
 
         # Assert response body contains token
-        self.assertIn('token', response_data)
+        self.assertIn('token', response_data, "Response JSON does not contain 'token'")
 
 if __name__ == '__main__':
     unittest.main()
