@@ -36,6 +36,7 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             # Bad request
             self.assertIn("Bad request", response.text)
 
+        
         elif response.status_code == 500:
             # Internal server error
             self.assertIn("Internal server error", response.text)
