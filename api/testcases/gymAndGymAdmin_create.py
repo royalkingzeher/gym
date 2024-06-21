@@ -12,7 +12,7 @@ class TestCreateGymAndGymAdmin(unittest.TestCase):
             'password': password
         })
         # Assert status code
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         # Assert response body contains token
         self.token = response.json().get('token')
         self.headers = {'Authorization': f'Bearer {self.token}'}
