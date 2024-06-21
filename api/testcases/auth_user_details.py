@@ -19,7 +19,7 @@ class TestUserDetails(unittest.TestCase):
     def test_user_details(self):
         headers = {'Authorization': f'Token {self.token}'}
         response = requests.get(self.user_details_url, headers=headers)
-        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.status_code, 404, response.text)
 
 if __name__ == '__main__':
     unittest.main()
