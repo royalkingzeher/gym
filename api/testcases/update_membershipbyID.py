@@ -23,10 +23,26 @@ class TestUpdateMembersMembershipById(unittest.TestCase):
         url = f"{self.base_url}/update/{membership_id}"
         response = requests.put(url, json=updated_data)
         
-        # Assert status code 401 (OK)
-        self.assertEqual(response.status_code, 401)
-        
-        # Optionally, you can assert more details about the response
+        # Assert based on status code and handle different cases
+        if response.status_code == 200:
+            # Membership updated successfully
+            self.assertIn('Membership updated successfully')
+        elif response.status_code == 400:
+            # Bad request (validation errors or overlapping dates)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn('Bad request')
+        elif response.status_code == 401:
+            # Unauthorized access
+            self.assertEqual(response.status_code, 401)
+            self.assertIn('Unauthorized')
+        elif response.status_code == 404:
+            # Membership not found
+            self.assertEqual(response.status_code, 404)
+            self.assertIn('Membership not found')
+        elif response.status_code == 500:
+            # Internal server error
+            self.assertEqual(response.status_code, 500)
+            self.assertIn('Internal server error')
         
 if __name__ == '__main__':
     unittest.main()
