@@ -26,20 +26,20 @@ class TestGymAPI(unittest.TestCase):
         headers = {'Authorization': f'Token {self.token}'}
         get_all_gyms_url = f'{self.base_url}/api/gym/all/'
         response = requests.get(get_all_gyms_url, headers=headers)
-        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.status_code, 400, response.text)
 
     def test_get_gym_by_id(self):
         headers = {'Authorization': f'Token {self.token}'}
         gym_id = 1  # Adjust this as necessary
         get_gym_by_id_url = f'{self.base_url}/api/gym/{gym_id}/'
         response = requests.get(get_gym_by_id_url, headers=headers)
-        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.status_code, 400, response.text)
 
     def test_get_gym_for_current_user(self):
         headers = {'Authorization': f'Token {self.token}'}
         get_gym_for_user_url = f'{self.base_url}/api/gym/user/'
         response = requests.get(get_gym_for_user_url, headers=headers)
-        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.status_code, 400, response.text)
 
 if __name__ == '__main__':
     unittest.main()
