@@ -37,3 +37,4 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             self.assertIn("Internal server error", response.text)
 
 if __name__ == "__main__":
+    unittest.main()
