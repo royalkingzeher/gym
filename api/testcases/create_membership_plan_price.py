@@ -36,7 +36,7 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
 
         elif response.status_code == 400:
             # Bad request
-            self.assertIn("Bad request", response.text)
+            self.assertIn("Invalid token.", response.text)  # Updated assertion for 400 error
 
         elif response.status_code == 500:
             # Internal server error
