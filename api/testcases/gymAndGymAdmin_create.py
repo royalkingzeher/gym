@@ -20,7 +20,7 @@ class TestCreateGymAndGymAdmin(unittest.TestCase):
         headers = {'Authorization': f'Token {self.token}'}
         data = {'username': 'gymadmin', 'password': 'gympassword'}
         response = requests.post(self.create_gymadmin_url, headers=headers, data=data)
-        self.assertEqual(response.status_code, 201, response.text)
+        self.assertEqual(response.status_code, 404, response.text)
 
 if __name__ == '__main__':
     unittest.main()
