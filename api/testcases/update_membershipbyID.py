@@ -30,19 +30,19 @@ class TestUpdateMembersMembershipById(unittest.TestCase):
         elif response.status_code == 400:
             # Bad request (validation errors or overlapping dates)
             self.assertEqual(response.status_code, 400)
-            self.assertIn('Bad request')
+            self.assertIn('Bad request',response.text)
         elif response.status_code == 401:
             # Unauthorized access
             self.assertEqual(response.status_code, 401)
-            self.assertIn('Unauthorized')
+            self.assertIn('Unauthorized',response.text)
         elif response.status_code == 404:
             # Membership not found
             self.assertEqual(response.status_code, 404)
-            self.assertIn('Membership not found')
+            self.assertIn('Membership not found', response.text)
         elif response.status_code == 500:
             # Internal server error
             self.assertEqual(response.status_code, 500)
-            self.assertIn('Internal server error')
+            self.assertIn('Internal server error', response.text)
         
 if __name__ == '__main__':
     unittest.main()
