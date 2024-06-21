@@ -30,11 +30,11 @@ class TestUpdateMembersMembershipById(unittest.TestCase):
         elif response.status_code == 400:
             # Bad request (validation errors or overlapping dates)
             self.assertEqual(response.status_code, 400)
-            self.assertIn('Bad request',response.text)
+            self.assertIn('Bad request', response.text)
         elif response.status_code == 401:
             # Unauthorized access
             self.assertEqual(response.status_code, 401)
-            self.assertIn('Unauthorized',response.text)
+            self.assertIn('Access denied. No token provided.', response.text)
         elif response.status_code == 404:
             # Membership not found
             self.assertEqual(response.status_code, 404)
