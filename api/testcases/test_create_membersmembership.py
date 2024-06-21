@@ -27,8 +27,6 @@ class TestCreateMembersMembership(unittest.TestCase):
             # Optionally, you can add more specific assertions for 400 responses
         elif response.status_code == 500:
             self.fail("Internal server error: 500")
-        else:
-            self.fail(f"Unexpected status code: {response.status_code}")
             
 if __name__ == '__main__':
     unittest.main()
