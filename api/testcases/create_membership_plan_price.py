@@ -36,7 +36,7 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             # Internal server error
             self.assertIn("Internal server error", response.text)
 
-         elif response.status_code == 401:
+        elif response.status_code == 401:
             # Unauthorized access
             self.fail("Unauthorized access", response.text)
 
