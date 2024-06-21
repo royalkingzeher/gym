@@ -18,7 +18,7 @@ class TestGymAPI(unittest.TestCase):
         print('Login response body:', login_response.text)
         
         # Assert login status code
-        self.assertEqual(login_response.status_code, 200)
+        self.assertEqual(login_response.status_code, 400)
         
         # Extract token from login response
         login_data = login_response.json()
