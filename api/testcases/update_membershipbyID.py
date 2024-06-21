@@ -34,7 +34,7 @@ class TestUpdateMembersMembershipById(unittest.TestCase):
         elif response.status_code == 401:
             # Unauthorized access
             self.assertEqual(response.status_code, 401)
-            self.assertIn('Unauthorized', t)
+            self.assertIn('Unauthorized')
         elif response.status_code == 404:
             # Membership not found
             self.assertEqual(response.status_code, 404)
