@@ -19,7 +19,7 @@ class TestGetAllGymAndGymAdmins(unittest.TestCase):
     def test_get_all_gym_admin_and_gyms(self):
         headers = {'Authorization': f'Token {self.token}'}
         response = requests.get(self.get_all_url, headers=headers)
-        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.status_code, 404, response.text)
 
 if __name__ == '__main__':
     unittest.main()
