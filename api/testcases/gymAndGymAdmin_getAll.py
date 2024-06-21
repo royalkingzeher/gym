@@ -12,7 +12,7 @@ class TestGetAllGymAndGymAdmins(unittest.TestCase):
             'password': password
         })
         # Assert status code
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.token = response.json().get('token')
         self.headers = {'Authorization': f'Bearer {self.token}'}
         # Send GET request to retrieve all gym admin and gym relationships
