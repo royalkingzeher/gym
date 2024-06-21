@@ -15,7 +15,7 @@ class TestGetMembersMembershipById(unittest.TestCase):
         url = f"{self.base_url}/{membership_id}"
         response = requests.get(url)
         
-        # Assert status code 200 (OK)
+        # Assert status code 401 (OK)
         self.assertEqual(response.status_code, 401)
         
         # Optionally, you can assert more details about the response
