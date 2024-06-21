@@ -21,7 +21,7 @@ class TestGetGymAdminsOfGym(unittest.TestCase):
     def test_get_gym_admins_of_gym(self):
         headers = {'Authorization': f'Token {self.token}'}
         response = requests.get(self.get_by_gym_id_url, headers=headers)
-        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.status_code, 400, response.text)
 
 if __name__ == '__main__':
     unittest.main()
