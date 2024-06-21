@@ -34,6 +34,7 @@ class TestCreateMembershipPlanPrice(unittest.TestCase):
             self.assertEqual(response.json()["price"], data["price"])
             # Add more assertions based on the expected schema
 
+        
         elif response.status_code == 400:
             # Bad request
             self.assertIn("Invalid token.", response.text)  # Updated assertion for 400 error
