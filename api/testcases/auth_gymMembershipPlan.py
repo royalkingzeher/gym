@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import requests
 
+
 BASE_URL = "http://localhost:3000/api/gymMembershipPlans"
 
 def get_membership_plan_by_id(plan_id):
