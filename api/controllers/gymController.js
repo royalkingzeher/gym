@@ -1,4 +1,5 @@
 const { Op } = require("sequelize");
+const logger = require("../utils/logger"); // Assuming logger setup in utils/logger.js
 const Gym = require("../models/gym");
 const GymAndGymAdmin = require("../models/gymAndGymAdmin");
 
@@ -73,6 +74,13 @@ const GymAndGymAdmin = require("../models/gymAndGymAdmin");
 
 /**
  * @swagger
+ * tags:
+ *   name: Gyms
+ *   description: Gym management endpoints
+ */
+
+/**
+ * @swagger
  * /api/gym:
  *   post:
  *     summary: Create a new gym
@@ -140,71 +148,83 @@ const GymAndGymAdmin = require("../models/gymAndGymAdmin");
 exports.createGym = async (req, res) => {
   const currentUser = req.user;
 
-  if (currentUser.type !== "admin") {
-    return res.status(401).send("Unauthorized, only admin user can create gym");
-  }
-
-  const requiredFields = [
-    "name",
-    "address",
-    "city",
-    "state",
-    "country",
-    "pincode",
-    "phone_number",
-    "email",
-    "contact_person",
-    "currency",
-  ];
-
-  const missingFields = requiredFields.filter((field) => !req.body[field]);
-
-  if (missingFields.length > 0) {
-    return res.status(400).json({
-      error: "Validation error",
-      details: missingFields.map((field) => `${field} is required`),
-    });
-  }
-
-  const validationErrors = [];
-
-  if (
-    typeof req.body.latitude !== "number" ||
-    typeof req.body.longitude !== "number"
-  ) {
-    validationErrors.push("latitude and longitude must be numbers");
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(req.body.email)) {
-    validationErrors.push("email format is invalid");
-  }
-
-  const phoneNumberRegex = /^\d{10}$/;
-  if (!phoneNumberRegex.test(req.body.phone_number)) {
-    validationErrors.push("phone number must be 10 digits");
-  }
-
-  const pincodeRegex = /^\d{6}$/;
-  if (!pincodeRegex.test(req.body.pincode)) {
-    validationErrors.push("pincode must be 6 digits");
-  }
-
-  if (validationErrors.length > 0) {
-    return res.status(400).json({
-      error: "Validation error",
-      details: validationErrors,
-    });
-  }
-
   try {
+    logger.info(`Creating new gym by user ID: ${currentUser.id}`);
+
+    if (currentUser.type !== "admin") {
+      logger.warn(
+        `Unauthorized attempt to create gym by user ID: ${currentUser.id}`
+      );
+      return res
+        .status(401)
+        .json({ error: "Unauthorized, only admin user can create gym" });
+    }
+
+    const requiredFields = [
+      "name",
+      "address",
+      "city",
+      "state",
+      "country",
+      "pincode",
+      "phone_number",
+      "email",
+      "contact_person",
+      "currency",
+    ];
+
+    const missingFields = requiredFields.filter((field) => !req.body[field]);
+
+    if (missingFields.length > 0) {
+      logger.warn(`Missing required fields: ${missingFields.join(", ")}`);
+      return res.status(400).json({
+        error: "Validation error",
+        details: missingFields.map((field) => `${field} is required`),
+      });
+    }
+
+    const validationErrors = [];
+
+    if (
+      typeof req.body.latitude !== "number" ||
+      typeof req.body.longitude !== "number"
+    ) {
+      validationErrors.push("latitude and longitude must be numbers");
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(req.body.email)) {
+      validationErrors.push("email format is invalid");
+    }
+
+    const phoneNumberRegex = /^\d{10}$/;
+    if (!phoneNumberRegex.test(req.body.phone_number)) {
+      validationErrors.push("phone number must be 10 digits");
+    }
+
+    const pincodeRegex = /^\d{6}$/;
+    if (!pincodeRegex.test(req.body.pincode)) {
+      validationErrors.push("pincode must be 6 digits");
+    }
+
+    if (validationErrors.length > 0) {
+      logger.warn(`Validation errors: ${validationErrors.join(", ")}`);
+      return res.status(400).json({
+        error: "Validation error",
+        details: validationErrors,
+      });
+    }
+
     const gym = await Gym.create(req.body);
-    const response = {
+
+    logger.info(`New gym created successfully with ID: ${gym.id}`);
+
+    res.status(200).json({
       message: "Gym created successfully",
       gym: gym,
-    };
-    res.status(200).send(response);
+    });
   } catch (error) {
+    logger.error(`Error creating gym: ${error.message}`);
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
@@ -316,65 +336,66 @@ exports.createGym = async (req, res) => {
 exports.getAllGyms = async (req, res) => {
   const currentUser = req.user;
 
-  if (currentUser.type !== "admin") {
-    return res.status(401).send("Unauthorized, only admin user can view gyms");
-  }
+  try {
+    logger.info(`Fetching list of gyms by user ID: ${currentUser.id}`);
 
-  const {
-    page = 1,
-    limit = 10,
-    sortBy = "name",
-    order = "asc",
-    search,
-  } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "name",
+      order = "asc",
+      search,
+    } = req.query;
 
-  const options = {
-    offset: (page - 1) * limit,
-    limit: +limit,
-    order: [[sortBy, order.toUpperCase()]],
-    where: {},
-  };
-
-  if (search) {
-    options.where[Op.or] = [
-      { name: { [Op.iLike]: `%${search}%` } },
-      { address: { [Op.iLike]: `%${search}%` } },
-      { city: { [Op.iLike]: `%${search}%` } },
-      { state: { [Op.iLike]: `%${search}%` } },
-      { country: { [Op.iLike]: `%${search}%` } },
-      { phone_number: { [Op.iLike]: `%${search}%` } },
-      { email: { [Op.iLike]: `%${search}%` } },
-      { contact_person: { [Op.iLike]: `%${search}%` } },
-    ];
-  }
-
-  if (currentUser.type === "gym_admin") {
-    const gymAndGymAdmins = await GymAndGymAdmin.findAll({
-      where: {
-        gymAdminId: currentUser.id,
-      },
-    });
-
-    const gymIds = gymAndGymAdmins.map((g) => g.gymId);
-
-    options.where.id = {
-      [Op.in]: gymIds,
+    const options = {
+      offset: (page - 1) * limit,
+      limit: +limit,
+      order: [[sortBy, order.toUpperCase()]],
+      where: {},
     };
+
+    if (search) {
+      options.where[Op.or] = [
+        { name: { [Op.iLike]: `%${search}%` } },
+        { address: { [Op.iLike]: `%${search}%` } },
+        { city: { [Op.iLike]: `%${search}%` } },
+        { state: { [Op.iLike]: `%${search}%` } },
+        { country: { [Op.iLike]: `%${search}%` } },
+        { phone_number: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
+        { contact_person: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    if (currentUser.type === "gym_admin" || currentUser.type === "gym_member") {
+      gymId = currentUser.gymId;
+      options.where.id = gymId;
+    }
+
+    const gyms = await Gym.findAndCountAll(options);
+    const totalPages = Math.ceil(gyms.count / limit);
+
+    logger.info(
+      `Successfully fetched list of gyms by user ID: ${currentUser.id}`
+    );
+
+    const response = {
+      data: gyms.rows,
+      meta: {
+        totalItems: gyms.count,
+        totalPages: totalPages,
+        currentPage: +page,
+      },
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    logger.error(`Error fetching gyms: ${error.message}`);
+    res.status(500).json({
+      error: "Internal server error",
+      details: [error.message],
+    });
   }
-
-  const gyms = await Gym.findAndCountAll(options);
-  const totalPages = Math.ceil(gyms.count / limit);
-
-  const response = {
-    data: gyms.rows,
-    meta: {
-      totalItems: gyms.count,
-      totalPages: totalPages,
-      currentPage: +page,
-    },
-  };
-
-  res.status(200).json(response);
 };
 
 /**
@@ -409,38 +430,43 @@ exports.getAllGyms = async (req, res) => {
 exports.getGymById = async (req, res) => {
   const currentUser = req.user;
 
-  if (currentUser.type !== "admin") {
-    return res.status(401).send("Unauthorized, only admin user can view gyms");
-  }
-
-  if (currentUser.type === "gym_admin") {
-    const gymAndGymAdmin = await GymAndGymAdmin.findOne({
-      where: {
-        gymAdminId: currentUser.id,
-        gymId: req.params.id,
-      },
-    });
-
-    if (!gymAndGymAdmin) {
-      return res
-        .status(401)
-        .send("Unauthorized, gym admin does not have access to this gym");
-    }
-  }
-
-  const { id } = req.params;
-
   try {
+    logger.info(
+      `Fetching gym by ID: ${req.params.id} by user ID: ${currentUser.id}`
+    );
+
+    if (currentUser.type === "gym_admin" || currentUser.type === "gym_member") {
+      gymId = currentUser.gymId;
+      // Check if user requested id is same as gym id
+      if (gymId != req.params.id) {
+        logger.warn(
+          `Unauthorized attempt to fetch gym by ID: ${req.params.id} by user ID: ${currentUser.id}`
+        );
+        return res
+          .status(401)
+          .json({ error: "Unauthorized, only admin user can view gyms" });
+      }
+    }
+
+    const { id } = req.params;
     const gym = await Gym.findByPk(id);
 
     if (!gym) {
+      logger.warn(`Gym with ID ${id} not found`);
       return res.status(404).json({
         error: `Gym with ID ${id} not found`,
       });
     }
 
+    logger.info(
+      `Successfully fetched gym by ID: ${id} by user ID: ${currentUser.id}`
+    );
+
     res.status(200).json(gym);
   } catch (error) {
+    logger.error(
+      `Error fetching gym by ID: ${req.params.id}: ${error.message}`
+    );
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
@@ -499,18 +525,25 @@ exports.getGymById = async (req, res) => {
 exports.updateGymById = async (req, res) => {
   const currentUser = req.user;
 
-  if (currentUser.type !== "admin") {
-    return res
-      .status(401)
-      .send("Unauthorized, only admin user can update gyms");
-  }
-
-  const { id } = req.params;
-
   try {
+    logger.info(
+      `Updating gym by ID: ${req.params.id} by user ID: ${currentUser.id}`
+    );
+
+    if (currentUser.type !== "admin") {
+      logger.warn(
+        `Unauthorized attempt to update gym by ID: ${req.params.id} by user ID: ${currentUser.id}`
+      );
+      return res
+        .status(401)
+        .json({ error: "Unauthorized, only admin user can update gyms" });
+    }
+
+    const { id } = req.params;
     const gym = await Gym.findByPk(id);
 
     if (!gym) {
+      logger.warn(`Gym with ID ${id} not found`);
       return res.status(404).json({
         error: `Gym with ID ${id} not found`,
       });
@@ -518,16 +551,28 @@ exports.updateGymById = async (req, res) => {
 
     await gym.update(req.body);
 
+    logger.info(
+      `Successfully updated gym by ID: ${id} by user ID: ${currentUser.id}`
+    );
+
     res.status(200).json(gym);
   } catch (error) {
     if (error.name === "SequelizeValidationError") {
       const details = error.errors.map((e) => e.message);
+      logger.warn(
+        `Validation errors while updating gym by ID: ${
+          req.params.id
+        }: ${details.join(", ")}`
+      );
       return res.status(400).json({
         error: "Validation error",
         details: details,
       });
     }
 
+    logger.error(
+      `Error updating gym by ID: ${req.params.id}: ${error.message}`
+    );
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
@@ -563,18 +608,25 @@ exports.updateGymById = async (req, res) => {
 exports.deleteGymById = async (req, res) => {
   const currentUser = req.user;
 
-  if (currentUser.type !== "admin") {
-    return res
-      .status(401)
-      .send("Unauthorized, only admin user can delete gyms");
-  }
-
-  const { id } = req.params;
-
   try {
+    logger.info(
+      `Deleting gym by ID: ${req.params.id} by user ID: ${currentUser.id}`
+    );
+
+    if (currentUser.type !== "admin") {
+      logger.warn(
+        `Unauthorized attempt to delete gym by ID: ${req.params.id} by user ID: ${currentUser.id}`
+      );
+      return res
+        .status(401)
+        .json({ error: "Unauthorized, only admin user can delete gyms" });
+    }
+
+    const { id } = req.params;
     const gym = await Gym.findByPk(id);
 
     if (!gym) {
+      logger.warn(`Gym with ID ${id} not found`);
       return res.status(404).json({
         error: `Gym with ID ${id} not found`,
       });
@@ -582,10 +634,17 @@ exports.deleteGymById = async (req, res) => {
 
     await gym.destroy();
 
+    logger.info(
+      `Successfully deleted gym by ID: ${id} by user ID: ${currentUser.id}`
+    );
+
     res.status(200).json({
       message: `Gym with ID ${id} deleted successfully`,
     });
   } catch (error) {
+    logger.error(
+      `Error deleting gym by ID: ${req.params.id}: ${error.message}`
+    );
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
