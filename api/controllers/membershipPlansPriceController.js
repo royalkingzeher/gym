@@ -1,6 +1,7 @@
+const { Op } = require("sequelize");
 const MembershipPlansPrice = require("../models/membershipPlansPrice");
 const MembershipPlan = require("../models/gymMembershipPlan");
-const { Op } = require("sequelize");
+const logger = require("../utils/logger");
 
 /**
  * @swagger
@@ -68,21 +69,40 @@ exports.getMembershipPlanPriceById = async (req, res) => {
     const price = await MembershipPlansPrice.findByPk(priceId, {
       include: {
         model: MembershipPlan,
-        attributes: ["id", "plan_name", "gym_id"], // Adjust attributes as needed
+        attributes: ["id", "plan_name", "gym_id"],
       },
     });
 
     // Check if price exists
     if (!price) {
-      return res.status(404).send("Membership plan price not found.");
+      return res.status(404).json({ error: "Membership plan price not found" });
     }
 
-    // Send the price details in the response
+    if (req.user.type !== "admin") {
+      gym_id = req.user.gym_id;
+      membership_plan_ids = await MembershipPlan.findAll({
+        where: { gym_id },
+        attributes: ["id"],
+      }).map((plan) => plan.id);
+
+      const membership_plan_id = price.membership_plan_id;
+      // Check if the requested id is in membership_plan_ids
+      if (!membership_plan_ids.includes(membership_plan_id)) {
+        return res.status(401).json({
+          error: "Unauthorized to access this membership plan price",
+        });
+      }
+    }
+
+    // Log success and send the price details in the response
+    logger.info(`Retrieved membership plan price with ID ${priceId}`);
     res.status(200).json(price);
   } catch (error) {
-    // Handle errors
-    console.error("Error fetching membership plan price by ID:", error);
-    res.status(500).send(error.message);
+    // Log error and handle errors
+    logger.error(
+      `Error fetching membership plan price by ID: ${error.message}`
+    );
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -121,6 +141,12 @@ exports.createMembershipPlanPrice = async (req, res) => {
   } = req.body;
 
   try {
+    if (req.user.type !== "admin" && req.user.type !== "gym_admin") {
+      return res.status(401).json({
+        error: "Unauthorized to create a membership plan price",
+      });
+    }
+
     // Validate required fields and date order
     if (
       !membership_plan_id ||
@@ -129,7 +155,9 @@ exports.createMembershipPlanPrice = async (req, res) => {
       !validity_end_date ||
       new Date(validity_start_date) >= new Date(validity_end_date)
     ) {
-      return res.status(400).send("Invalid validity dates or missing fields.");
+      return res
+        .status(400)
+        .json({ error: "Invalid validity dates or missing fields" });
     }
 
     // Check for overlapping validity periods for the same membership_plan_id
@@ -152,7 +180,22 @@ exports.createMembershipPlanPrice = async (req, res) => {
     if (overlappingPrice) {
       return res
         .status(400)
-        .send("Validity period overlaps with an existing price.");
+        .json({ error: "Validity period overlaps with an existing price" });
+    }
+
+    if (req.user.type !== "admin") {
+      gym_id = req.user.gym_id;
+      membership_plan_ids = await MembershipPlan.findAll({
+        where: { gym_id },
+        attributes: ["id"],
+      }).map((plan) => plan.id);
+
+      // Check if the requested id is in membership_plan_ids
+      if (!membership_plan_ids.includes(membership_plan_id)) {
+        return res.status(401).json({
+          error: "Unauthorized to create a price for this membership plan",
+        });
+      }
     }
 
     // Create the new membership plan price
@@ -164,12 +207,13 @@ exports.createMembershipPlanPrice = async (req, res) => {
       comments,
     });
 
-    // Send the created price details in the response
+    // Log success and send the created price details in the response
+    logger.info(`Created new membership plan price with ID ${newPrice.id}`);
     res.status(201).json(newPrice);
   } catch (error) {
-    // Handle errors
-    console.error("Error creating membership plan price:", error);
-    res.status(500).send("Internal server error.");
+    // Log error and handle errors
+    logger.error(`Error creating membership plan price: ${error.message}`);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -233,12 +277,18 @@ exports.updateMembershipPlanPriceById = async (req, res) => {
   } = req.body;
 
   try {
+    if (req.user.type !== "admin" && req.user.type !== "gym_admin") {
+      return res.status(401).json({
+        error: "Unauthorized to update a membership plan price",
+      });
+    }
+
     // Fetch the membership plan price from the database by ID
     let priceToUpdate = await MembershipPlansPrice.findByPk(priceId);
 
     // Check if price exists
     if (!priceToUpdate) {
-      return res.status(404).send("Membership plan price not found.");
+      return res.status(404).json({ error: "Membership plan price not found" });
     }
 
     // Check for date order and overlapping validity periods for the same membership_plan_id
@@ -247,9 +297,9 @@ exports.updateMembershipPlanPriceById = async (req, res) => {
       validity_end_date !== undefined &&
       new Date(validity_start_date) >= new Date(validity_end_date)
     ) {
-      return res
-        .status(400)
-        .send("Validity start date must be before validity end date.");
+      return res.status(400).json({
+        error: "Validity start date must be before validity end date",
+      });
     }
 
     if (
@@ -281,7 +331,7 @@ exports.updateMembershipPlanPriceById = async (req, res) => {
       if (overlappingPrice) {
         return res
           .status(400)
-          .send("Validity period overlaps with an existing price.");
+          .json({ error: "Validity period overlaps with an existing price" });
       }
     }
 
@@ -302,15 +352,31 @@ exports.updateMembershipPlanPriceById = async (req, res) => {
       priceToUpdate.comments = comments;
     }
 
+    if (req.user.type !== "admin") {
+      gym_id = req.user.gym_id;
+      membership_plan_ids = await MembershipPlan.findAll({
+        where: { gym_id },
+        attributes: ["id"],
+      }).map((plan) => plan.id);
+
+      // Check if the requested id is in membership_plan_ids
+      if (!membership_plan_ids.includes(membership_plan_id)) {
+        return res.status(401).json({
+          error: "Unauthorized to update a price for this membership plan",
+        });
+      }
+    }
+
     // Save the updated price
     priceToUpdate = await priceToUpdate.save();
 
-    // Send the updated price details in the response
+    // Log success and send the updated price details in the response
+    logger.info(`Updated membership plan price with ID ${priceId}`);
     res.status(200).json(priceToUpdate);
   } catch (error) {
-    // Handle errors
-    console.error("Error updating membership plan price:", error);
-    res.status(500).send("Internal server error.");
+    // Log error and handle errors
+    logger.error(`Error updating membership plan price: ${error.message}`);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -345,19 +411,184 @@ exports.deleteMembershipPlanPriceById = async (req, res) => {
     // Fetch the membership plan price from the database by ID
     const priceToDelete = await MembershipPlansPrice.findByPk(priceId);
 
+    const membership_plan_id = priceToDelete.membership_plan_id;
+
+    if (req.user.type !== "admin") {
+      gym_id = req.user.gym_id;
+      membership_plan_ids = await MembershipPlan.findAll({
+        where: { gym_id },
+        attributes: ["id"],
+      }).map((plan) => plan.id);
+
+      // Check if the requested id is in membership_plan_ids
+      if (!membership_plan_ids.includes(membership_plan_id)) {
+        return res.status(401).json({
+          error: "Unauthorized to delete a price for this membership plan",
+        });
+      }
+    }
+
     // Check if price exists
     if (!priceToDelete) {
-      return res.status(404).send("Membership plan price not found.");
+      return res.status(404).json({ error: "Membership plan price not found" });
     }
 
     // Delete the price from the database
     await priceToDelete.destroy();
 
-    // Send a success response
+    // Log success and send a success response
+    logger.info(`Deleted membership plan price with ID ${priceId}`);
     res.sendStatus(204);
   } catch (error) {
-    // Handle errors
-    console.error("Error deleting membership plan price:", error);
-    res.status(500).send("Internal server error.");
+    // Log error and handle errors
+    logger.error(`Error deleting membership plan price: ${error.message}`);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * @swagger
+ * /api/membershipPlansPrices:
+ *   get:
+ *     summary: Get all membership plan prices
+ *     tags: [MembershipPlansPrices]
+ *     description: Retrieve a list of all membership plan prices with support for DataTables.
+ *     parameters:
+ *       - in: query
+ *         name: draw
+ *         schema:
+ *           type: integer
+ *           description: Sequence number sent by DataTables
+ *       - in: query
+ *         name: start
+ *         schema:
+ *           type: integer
+ *           description: Paging first record indicator
+ *       - in: query
+ *         name: length
+ *         schema:
+ *           type: integer
+ *           description: Number of records that the table can display in the current draw
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               column:
+ *                 type: integer
+ *                 description: Column to which ordering should be applied (index-based)
+ *               dir:
+ *                 type: string
+ *                 enum: [asc, desc]
+ *                 description: Ordering direction for this column
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: object
+ *           properties:
+ *             value:
+ *               type: string
+ *               description: Global search value
+ *     responses:
+ *       200:
+ *         description: An array of membership plan prices
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 draw:
+ *                   type: integer
+ *                   description: Sequence number sent by DataTables
+ *                 recordsTotal:
+ *                   type: integer
+ *                   description: Total number of membership plan prices without filtering
+ *                 recordsFiltered:
+ *                   type: integer
+ *                   description: Total number of membership plan prices after filtering
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MembershipPlansPrice'
+ *       401:
+ *         description: Unauthorized. Only admin or authorized users can fetch membership plan prices.
+ *       500:
+ *         description: Internal server error
+ */
+exports.getAllMembershipPlanPrices = async (req, res) => {
+  const currentUser = req.user;
+
+  // Extract query parameters and provide sensible defaults
+  const {
+    draw = 1,
+    start = 0,
+    length = 10,
+    order = [{ column: 0, dir: "asc" }],
+    search = { value: "" }
+  } = req.query;
+
+  const drawNumber = isNaN(parseInt(draw, 10)) ? 1 : parseInt(draw, 10);
+  const startIndex = isNaN(parseInt(start, 10)) ? 0 : parseInt(start, 10);
+  const limitNumber = isNaN(parseInt(length, 10)) ? 10 : parseInt(length, 10);
+  const searchValue = search && search.value ? search.value : "";
+
+  const validColumns = [
+    "id",
+    "membership_plan_id",
+    "price",
+    "validity_start_date",
+    "validity_end_date",
+    "comments",
+    "createdAt",
+    "updatedAt"
+  ];
+
+  const orderBy = order && order.length > 0 ? order[0].column : 0;
+  const orderDir = order && order.length > 0 && order[0].dir ? order[0].dir.toLowerCase() : "asc";
+  const sanitizedSortBy = validColumns.includes(validColumns[orderBy]) ? validColumns[orderBy] : "id";
+  const orderCondition = [[sanitizedSortBy, orderDir]];
+
+  try {
+    let whereCondition = {
+      [Op.or]: validColumns.map(col => ({
+        [col]: { [Op.like]: `%${searchValue}%` }
+      }))
+    };
+
+    if (currentUser.type !== "admin") {
+      gym_id = req.user.gym_id;
+      const membershipPlanIds = await MembershipPlan.findAll({
+        where: { gym_id },
+        attributes: ["id"]
+      }).map(plan => plan.id);
+
+      whereCondition = {
+        ...whereCondition,
+        membership_plan_id: { [Op.in]: membershipPlanIds }
+      };
+    }
+
+    const { count, rows } = await MembershipPlansPrice.findAndCountAll({
+      where: whereCondition,
+      include: {
+        model: MembershipPlan,
+        attributes: ["id", "plan_name", "gym_id"]
+      },
+      order: orderCondition,
+      limit: limitNumber,
+      offset: startIndex
+    });
+
+    res.status(200).json({
+      draw: drawNumber,
+      recordsTotal: count,
+      recordsFiltered: count,
+      data: rows
+    });
+  } catch (error) {
+    logger.error(`Error fetching all membership plan prices: ${error.message}`);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
