@@ -10,15 +10,15 @@ class TestPaymentController(unittest.TestCase):
 
     def test_create_payment_success(self):
         payload = {
-            "gym_member_id": 1,
-            "membership_plan_id": 1,
+            "gym_member_id": 5,
+            "membership_plan_id": 2,
             "start_date": "2024-06-01",
             "end_date": "2024-12-01",
             "payment_date": "2024-06-01",
             "payment_type": "calculated_fee",
             "payment_method": "credit_card",
             "calculation_breakup": "Basic fee",
-            "total_amount": 100.00,
+            "total_amount": 5500.00,
             "comments": "First payment"
         }
         response = requests.post(self.BASE_URL, json=payload, headers=self.HEADERS)
@@ -27,15 +27,15 @@ class TestPaymentController(unittest.TestCase):
 
     def test_create_payment_bad_request(self):
         payload = {
-            "gym_member_id": 3,
+            "gym_member_id": 5,
             "membership_plan_id": 2,
             "start_date": "2024-06-01",
             "end_date": "2024-12-01",
-            "payment_date": "2024-06-01",
+            "payment_date": "2024-07-01",
             "payment_type": "calculated_fee",
-            "payment_method": "UPI",
+            "payment_method": "credit_card",
             "calculation_breakup": "Basic fee",
-            "total_amount": 10000.00,
+            "total_amount": 5500.00,
             "comments": "First payment"
         }
         response = requests.post(self.BASE_URL, json=payload, headers=self.HEADERS)
@@ -43,15 +43,15 @@ class TestPaymentController(unittest.TestCase):
 
     def test_create_payment_unauthorized(self):
         payload = {
-            "gym_member_id": 3,
+            "gym_member_id": 5,
             "membership_plan_id": 2,
             "start_date": "2024-06-01",
             "end_date": "2024-12-01",
-            "payment_date": "2024-06-01",
+            "payment_date": "2024-07-01",
             "payment_type": "calculated_fee",
-            "payment_method": "UPI",
+            "payment_method": "credit_card",
             "calculation_breakup": "Basic fee",
-            "total_amount": 10000.00,
+            "total_amount": 5500.00,
             "comments": "First payment"
         }
         headers = {
@@ -62,16 +62,16 @@ class TestPaymentController(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_create_payment_internal_server_error(self):
-       payload = {
-            "gym_member_id": 3,
+        payload = {
+            "gym_member_id": 5,
             "membership_plan_id": 2,
             "start_date": "2024-06-01",
             "end_date": "2024-12-01",
-            "payment_date": "2024-06-01",
+            "payment_date": "2024-07-01",
             "payment_type": "calculated_fee",
-            "payment_method": "UPI",
+            "payment_method": "credit_card",
             "calculation_breakup": "Basic fee",
-            "total_amount": 10000.00,
+            "total_amount": 5500.00,
             "comments": "First payment"
         }
         response = requests.post(f"{self.BASE_URL}/invalid_endpoint", json=payload, headers=self.HEADERS)
