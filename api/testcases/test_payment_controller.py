@@ -27,7 +27,7 @@ class TestPaymentController(unittest.TestCase):
 
     def test_create_payment_bad_request(self):
         payload = {
-            "gym_member_id": 5,
+            "gym_member_id": "invalid_id",  # Invalid type to trigger a bad request
             "membership_plan_id": 2,
             "start_date": "2024-06-01",
             "end_date": "2024-12-01",
@@ -74,7 +74,7 @@ class TestPaymentController(unittest.TestCase):
             "total_amount": 5500.00,
             "comments": "First payment"
         }
-        response = requests.post(f"{self.BASE_URL}/invalid_endpoint", json=payload, headers=self.HEADERS)
+        response = requests.post(f"{self.BASE_URL}/simulate_internal_error", json=payload, headers=self.HEADERS)
         self.assertEqual(response.status_code, 500)
 
 if __name__ == '__main__':
