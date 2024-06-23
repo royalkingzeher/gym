@@ -1,9 +1,12 @@
-require("dotenv").config(); // Load environment variables
+const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const GymAndGymMember = require("../models/gymAndGymMember");
 const Gym = require("../models/gym");
+const logger = require("../utils/logger");
+
+dotenv.config(); // Load environment variables
 
 /**
  * @swagger
@@ -41,17 +44,21 @@ exports.signupAdmin = async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).send("Username and password are required.");
+      return res
+        .status(400)
+        .json({ error: "Username and password are required." });
     }
 
     if (password.length < 8) {
       return res
         .status(400)
-        .send("Password must be at least 8 characters long.");
+        .json({ error: "Password must be at least 8 characters long." });
     }
 
     let user = await User.findOne({ where: { username } });
-    if (user) return res.status(400).send("User already exists.");
+    if (user) {
+      return res.status(400).json({ error: "User already exists." });
+    }
 
     user = await User.create({
       username,
@@ -68,9 +75,10 @@ exports.signupAdmin = async (req, res) => {
       },
     };
 
-    res.status(200).send(response);
+    res.status(200).json(response);
   } catch (error) {
-    res.status(500).send("Internal server error");
+    logger.error(`Error in signupAdmin: ${error.message}`);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -166,31 +174,37 @@ exports.signupGymAdmin = async (req, res) => {
     if (currentUser.type !== "admin") {
       return res
         .status(403)
-        .send("Forbidden, only admin user can create gym admin user");
+        .json({
+          error: "Forbidden, only admin user can create gym admin user",
+        });
     }
 
     if (!username || !password || !firstName) {
       return res
         .status(400)
-        .send("Username, password, and first name are required.");
+        .json({ error: "Username, password, and first name are required." });
     }
 
     if (password.length < 8) {
       return res
         .status(400)
-        .send("Password must be at least 8 characters long.");
+        .json({ error: "Password must be at least 8 characters long." });
     }
 
     if (phone && !/^\d{10}$/.test(phone)) {
-      return res.status(400).send("Phone number should be 10 digits long.");
+      return res
+        .status(400)
+        .json({ error: "Phone number should be 10 digits long." });
     }
 
     if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-      return res.status(400).send("Invalid email format.");
+      return res.status(400).json({ error: "Invalid email format." });
     }
 
     let user = await User.findOne({ where: { username } });
-    if (user) return res.status(400).send("User already exists.");
+    if (user) {
+      return res.status(400).json({ error: "User already exists." });
+    }
 
     user = await User.create({
       username,
@@ -222,9 +236,10 @@ exports.signupGymAdmin = async (req, res) => {
       },
     };
 
-    res.status(200).send(response);
+    res.status(200).json(response);
   } catch (error) {
-    res.status(500).send("Internal server error" + error);
+    logger.error(`Error in signupGymAdmin: ${error.message}`);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -321,29 +336,37 @@ exports.signupGymMember = async (req, res) => {
     if (!username || !password || !firstName || !gymId) {
       return res
         .status(400)
-        .send("Username, password, first name, and gym ID are required.");
+        .json({
+          error: "Username, password, first name, and gym ID are required.",
+        });
     }
 
     if (password.length < 8) {
       return res
         .status(400)
-        .send("Password must be at least 8 characters long.");
+        .json({ error: "Password must be at least 8 characters long." });
     }
 
     if (phone && !/^\d{10}$/.test(phone)) {
-      return res.status(400).send("Phone number should be 10 digits long.");
+      return res
+        .status(400)
+        .json({ error: "Phone number should be 10 digits long." });
     }
 
     if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-      return res.status(400).send("Invalid email format.");
+      return res.status(400).json({ error: "Invalid email format." });
     }
 
     // Check if the gymId exists in the Gym table
     const gym = await Gym.findByPk(gymId);
-    if (!gym) return res.status(400).send("Gym does not exist.");
+    if (!gym) {
+      return res.status(400).json({ error: "Gym does not exist." });
+    }
 
     let user = await User.findOne({ where: { username } });
-    if (user) return res.status(400).send("User already exists.");
+    if (user) {
+      return res.status(400).json({ error: "User already exists." });
+    }
 
     user = await User.create({
       username,
@@ -378,9 +401,10 @@ exports.signupGymMember = async (req, res) => {
       },
     };
 
-    res.status(200).send(response);
+    res.status(200).json(response);
   } catch (error) {
-    res.status(500).send("Internal server error");
+    logger.error(`Error in signupGymMember: ${error.message}`);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -406,25 +430,29 @@ exports.signupGymMember = async (req, res) => {
  *       200:
  *         description: The user was successfully logged in
  *       400:
- *         description: Bad request
+ *         description: Invalid username or password
  */
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
     let user = await User.findOne({ where: { username } });
-    if (!user) return res.status(400).send("Invalid username or password.");
+    if (!user) {
+      return res.status(400).json({ error: "Invalid username or password." });
+    }
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword)
-      return res.status(400).send("Invalid username or password.");
+    if (!validPassword) {
+      return res.status(400).json({ error: "Invalid username or password." });
+    }
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    res.send({ token });
+    res.json({ token });
   } catch (error) {
-    res.status(500).send(error);
+    logger.error(`Error in login: ${error.message}`);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -450,8 +478,9 @@ exports.userDetails = async (req, res) => {
       attributes: { exclude: ["password"] },
     });
 
-    res.send(user);
+    res.json(user);
   } catch (error) {
-    res.status(500).send("Internal server error");
+    logger.error(`Error in userDetails: ${error.message}`);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
