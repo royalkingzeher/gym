@@ -61,6 +61,7 @@ const Gym = sequelize.define("Gym", {
   currency: {
     type: DataTypes.STRING,
     allowNull: false,
+    defaultValue: "INR",
   },
   latitude: {
     type: DataTypes.FLOAT,
