@@ -1,5 +1,6 @@
 const { Op } = require("sequelize");
 const User = require("../models/user");
+const logger = require("../utils/logger");
 
 /**
  * @swagger
@@ -195,7 +196,7 @@ const User = require("../models/user");
  *         name: sortBy
  *         schema:
  *           type: string
- *           enum: [id, username, firstName, lastName, email, type, status]
+ *           enum: [id, username, firstName, lastName, email, type, status, phone, address, city, state, pincode, country, dateOfBirth, gender, profilePicture, emergencyContactName, emergencyContactPhone, emergencyContactRelation]
  *           default: id
  *         description: The field to sort by
  *       - in: query
@@ -209,7 +210,7 @@ const User = require("../models/user");
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term to filter users by username, firstName, lastName, or email
+ *         description: Search term to filter users by username, firstName, lastName, email, etc.
  *     responses:
  *       200:
  *         description: List of users
@@ -235,16 +236,12 @@ const User = require("../models/user");
  *                       type: integer
  *                       example: 1
  *       401:
- *         description: Unauthorized, only admin user can view users
+ *         description: Unauthorized, user does not have permission
  *       500:
  *         description: Internal server error
  */
 exports.getAllUsers = async (req, res) => {
   const currentUser = req.user;
-
-  if (currentUser.type !== "admin") {
-    return res.status(401).send("Unauthorized, only admin user can view users");
-  }
 
   // Extract query parameters and provide sensible defaults
   const {
@@ -256,7 +253,6 @@ exports.getAllUsers = async (req, res) => {
     ...filters
   } = req.query;
 
-  // Convert page and limit to numbers and validate them
   const pageNumber = isNaN(parseInt(page, 10))
     ? 1
     : Math.max(1, parseInt(page, 10));
@@ -265,7 +261,6 @@ exports.getAllUsers = async (req, res) => {
     : Math.max(1, parseInt(limit, 10));
   const offset = (pageNumber - 1) * limitNumber;
 
-  // Construct sorting condition
   const validColumns = [
     "id",
     "username",
@@ -274,13 +269,25 @@ exports.getAllUsers = async (req, res) => {
     "email",
     "type",
     "status",
+    "phone",
+    "address",
+    "city",
+    "state",
+    "pincode",
+    "country",
+    "dateOfBirth",
+    "gender",
+    "profilePicture",
+    "emergencyContactName",
+    "emergencyContactPhone",
+    "emergencyContactRelation",
   ];
+
   const sanitizedSortBy = validColumns.includes(sortBy) ? sortBy : "id";
   const orderCondition = [
     [sanitizedSortBy, order.toLowerCase() === "desc" ? "desc" : "asc"],
   ];
 
-  // Create filters condition
   const filterConditions = Object.entries(filters).reduce(
     (acc, [key, value]) => {
       if (value && validColumns.includes(key)) {
@@ -291,76 +298,84 @@ exports.getAllUsers = async (req, res) => {
     {}
   );
 
-  // Create search condition for specific columns (only if search is not empty)
-  let searchCondition = {};
-  if (search) {
-    searchCondition = {
-      [Op.or]: validColumns
-        .filter((col) => col !== "password")
-        .map((field) => ({
-          [field]: { [Op.like]: `%${search}%` },
-        })),
-    };
-  }
-
   try {
-    const { rows: users, count } = await User.findAndCountAll({
+    let whereCondition = {
+      [Op.or]: validColumns.map((col) => ({
+        [col]: { [Op.like]: `%${search}%` },
+      })),
+    };
+
+    if (currentUser.type === "gym_admin") {
+      // Restrict view to gym members of the gym linked to the gym_admin
+      const gymMembers = await GymAndGymMember.findAll({
+        where: {
+          gymId: currentUser.gym_id, // Assuming gym_id is stored in currentUser
+        },
+        attributes: ["memberId"],
+      });
+
+      const memberIds = gymMembers.map((member) => member.memberId);
+      whereCondition = {
+        ...whereCondition,
+        id: { [Op.in]: memberIds },
+        type: "gym_member", // Assuming gym members are identified by type
+        // Add additional conditions as per your application logic
+      };
+    } else if (currentUser.type === "gym_member") {
+      // Allow view/actions only for the gym_member itself
+      whereCondition = {
+        ...whereCondition,
+        id: currentUser.id,
+      };
+    }
+
+    const { count, rows } = await User.findAndCountAll({
       where: {
         ...filterConditions,
-        ...searchCondition,
+        ...whereCondition,
       },
+      attributes: { exclude: ["password"] },
       order: orderCondition,
       limit: limitNumber,
       offset,
     });
 
-    // Calculate total pages
-    const totalPages = Math.ceil(count / limitNumber);
-
-    // Remove sensitive data from each user object
-    users.forEach((user) => {
-      delete user.dataValues.password;
-    });
-
     res.status(200).json({
-      data: users,
+      data: rows,
       meta: {
         totalItems: count,
-        totalPages,
+        totalPages: Math.ceil(count / limitNumber),
         currentPage: pageNumber,
       },
     });
   } catch (error) {
-    console.error(`Error fetching users: ${error.message}`);
+    logger.error("Error fetching users:", error);
     res.status(500).json({
-      error: "Internal server error",
-      details: [error.message],
+      message: "Internal server error",
     });
   }
 };
 
 /**
  * @swagger
- * /api/users/{userId}:
+ * /api/users/{id}:
  *   get:
  *     summary: Get a user by ID
  *     tags: [Users]
  *     parameters:
  *       - in: path
- *         name: userId
- *         required: true
+ *         name: id
  *         schema:
  *           type: integer
- *         description: The ID of the user to retrieve
+ *         required: true
+ *         description: The ID of the user
  *     responses:
  *       200:
- *         description: A single user object
+ *         description: The user data
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
- *       401:
- *         description: Unauthorized, user does not have permission
  *       404:
  *         description: User not found
  *       500:
@@ -368,46 +383,73 @@ exports.getAllUsers = async (req, res) => {
  */
 exports.getUserById = async (req, res) => {
   const currentUser = req.user;
-  const userId = req.params.userId;
+  const { id } = req.params;
+
+  if (
+    currentUser.type !== "admin" &&
+    currentUser.id !== parseInt(id, 10) &&
+    currentUser.type !== "gym_admin"
+  ) {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
+
+  if (currentUser.type === "gym_admin") {
+    const gymMember = await GymAndGymMember.findOne({
+      where: {
+        gymId: currentUser.gym_id,
+        memberId: id,
+      },
+    });
+
+    if (!gymMember) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+  }
+
+  if (
+    currentUser.type === "gym_member" &&
+    currentUser.id !== parseInt(id, 10)
+  ) {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
 
   try {
-    const user = await User.findByPk(userId);
-
+    const user = await User.findByPk(id);
+    user.password = undefined;
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
-
-    // Check if the current user has permission to access this user's information
-    if (currentUser.type !== "admin" && currentUser.id !== user.id) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    // Remove sensitive data from the user object
-    delete user.dataValues.password;
 
     res.status(200).json(user);
   } catch (error) {
-    console.error(`Error fetching user: ${error.message}`);
+    logger.error("Error fetching user by ID:", error);
     res.status(500).json({
-      error: "Internal server error",
-      details: [error.message],
+      message: "Internal server error",
     });
   }
 };
 
 /**
  * @swagger
- * /api/users/{userId}:
+ * /api/users/{id}:
  *   put:
  *     summary: Update a user by ID
  *     tags: [Users]
  *     parameters:
  *       - in: path
- *         name: userId
- *         required: true
+ *         name: id
  *         schema:
  *           type: integer
- *         description: The ID of the user to update
+ *         required: true
+ *         description: The ID of the user
  *     requestBody:
  *       required: true
  *       content:
@@ -416,15 +458,11 @@ exports.getUserById = async (req, res) => {
  *             $ref: '#/components/schemas/UserWithoutID'
  *     responses:
  *       200:
- *         description: User updated successfully
+ *         description: The updated user data
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
- *       400:
- *         description: Bad request, validation failed
- *       401:
- *         description: Unauthorized, user does not have permission
  *       404:
  *         description: User not found
  *       500:
@@ -432,56 +470,87 @@ exports.getUserById = async (req, res) => {
  */
 exports.updateUser = async (req, res) => {
   const currentUser = req.user;
-  const userId = req.params.userId;
-  const updatedUserData = req.body;
+  const { id } = req.params;
+  const updateUserRequest = req.body;
+
+  //admin can update any user, gym_admin can update gym_member, gym_member can update only itself
+  if (
+    currentUser.type !== "admin" &&
+    currentUser.id !== parseInt(id, 10) &&
+    currentUser.type !== "gym_admin"
+  ) {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
+
+  if (currentUser.type === "gym_admin") {
+    const gymMember = await GymAndGymMember.findOne({
+      where: {
+        gymId: currentUser.gym_id,
+        memberId: id,
+      },
+    });
+
+    if (!gymMember) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+  }
+
+  if (currentUser.type === "gym_member" && updateUserRequest.status) {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
+
+  if (
+    currentUser.type === "gym_member" &&
+    currentUser.id !== parseInt(id, 10)
+  ) {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
 
   try {
-    let user = await User.findByPk(userId);
+    const user = await User.findByPk(id);
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
-    // Check if the current user has permission to update this user's information
-    if (currentUser.type !== "admin" && currentUser.id !== user.id) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    // Update user data
-    user.set(updatedUserData);
-    await user.save();
-
-    // Remove sensitive data from the user object
-    delete user.dataValues.password;
+    await user.update(updateUserRequest);
+    user.password = undefined;
 
     res.status(200).json(user);
   } catch (error) {
-    console.error(`Error updating user: ${error.message}`);
+    logger.error("Error updating user:", error);
     res.status(500).json({
-      error: "Internal server error",
-      details: [error.message],
+      message: error.message,
     });
   }
 };
 
 /**
  * @swagger
- * /api/users/{userId}:
+ * /api/users/{id}:
  *   delete:
  *     summary: Delete a user by ID
  *     tags: [Users]
  *     parameters:
  *       - in: path
- *         name: userId
- *         required: true
+ *         name: id
  *         schema:
  *           type: integer
- *         description: The ID of the user to delete
+ *         required: true
+ *         description: The ID of the user
  *     responses:
- *       204:
+ *       200:
  *         description: User deleted successfully
- *       401:
- *         description: Unauthorized, user does not have permission
  *       404:
  *         description: User not found
  *       500:
@@ -489,27 +558,33 @@ exports.updateUser = async (req, res) => {
  */
 exports.deleteUser = async (req, res) => {
   const currentUser = req.user;
-  const userId = req.params.userId;
+  const { id } = req.params;
+
+  // Check for user permissions
+  if (currentUser.type !== "admin") {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
 
   try {
-    const user = await User.findByPk(userId);
+    const user = await User.findByPk(id);
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    if (currentUser.type !== "admin") {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
     await user.destroy();
 
-    res.status(204).send();
+    res.status(200).json({
+      message: "User deleted successfully",
+    });
   } catch (error) {
-    console.error(`Error deleting user: ${error.message}`);
+    logger.error("Error deleting user:", error);
     res.status(500).json({
-      error: "Internal server error",
-      details: [error.message],
+      message: "Internal server error",
     });
   }
 };
