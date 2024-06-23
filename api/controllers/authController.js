@@ -477,6 +477,7 @@ exports.userDetails = async (req, res) => {
     const user = await User.findByPk(currentUser.id, {
       attributes: { exclude: ["password"] },
     });
+    
 
     res.json(user);
   } catch (error) {
