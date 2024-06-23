@@ -2,6 +2,7 @@ const { Op } = require("sequelize");
 const GymAndGymMember = require("../models/gymAndGymMember");
 const Gym = require("../models/gym");
 const User = require("../models/user");
+const logger = require("../utils/logger");
 
 /**
  * @swagger
@@ -100,37 +101,33 @@ const User = require("../models/user");
 exports.createGymAndGymMember = async (req, res) => {
   const currentUser = req.user;
 
-  // Check if the current user is an admin
-  if (currentUser.type !== "admin") {
-    return res.status(401).json({
-      error: "Unauthorized, only admin user can create the relationship",
-    });
-  }
-
-  const { memberId, gymId } = req.body;
-
-  if (currentUser.type === "gym_admin") {
-    const gymAdminsGymId = await GymAndGymAdmin.findOne({
-      where: { gymAdminId: currentUser.id },
-    }).gymId;
-
-    //validate if the gymAdmin is trying to link a gym member to their gym
-    if (gymAdminsGymId !== gymId) {
+  try {
+    // Check if the current user is an admin
+    if (currentUser.type !== "admin" && currentUser.type !== "gym_admin") {
       return res.status(401).json({
-        error: "Unauthorized, gym admin can only link gym members to their gym",
+        error:
+          "Unauthorized, only admin or gym_admin user can create the relationship",
       });
     }
-  }
 
-  // Check for required fields
-  if (!memberId || !gymId) {
-    return res.status(400).json({
-      error: "Validation error",
-      details: ["memberId and gymId are required"],
-    });
-  }
+    const { memberId, gymId } = req.body;
 
-  try {
+    // if the current user is a gym_admin, check if the gymId matches the gymId of the gym_admin
+    if (currentUser.type === "gym_admin" && currentUser.gymId !== gymId) {
+      return res.status(401).json({
+        error:
+          "Unauthorized, you can only create the relationship for your gym",
+      });
+    }
+
+    // Check for required fields
+    if (!memberId || !gymId) {
+      return res.status(400).json({
+        error: "Validation error",
+        details: ["memberId and gymId are required"],
+      });
+    }
+
     // Ensure the memberId refers to a user of type gym_member and the gymId exists
     const [member, gym] = await Promise.all([
       User.findOne({
@@ -185,8 +182,16 @@ exports.createGymAndGymMember = async (req, res) => {
       member: member,
     };
 
-    res.status(200).send(response);
+    // Log success and return JSON response
+    logger.info(
+      `Created gymAndGymMember relationship: ${JSON.stringify(response)}`
+    );
+    res.status(200).json(response);
   } catch (error) {
+    // Log error and return JSON response
+    logger.error(
+      `Error creating gymAndGymMember relationship: ${error.message}`
+    );
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
@@ -222,16 +227,16 @@ exports.createGymAndGymMember = async (req, res) => {
 exports.deleteGymAndGymMember = async (req, res) => {
   const currentUser = req.user;
 
-  // Check if the current user is an admin
-  if (currentUser.type !== "admin") {
-    return res.status(401).json({
-      error: "Unauthorized, only admin user can delete the relationship",
-    });
-  }
-
-  const { id } = req.params;
-
   try {
+    // Check if the current user is an admin
+    if (currentUser.type !== "admin") {
+      return res.status(401).json({
+        error: "Unauthorized, only admin user can delete the relationship",
+      });
+    }
+
+    const { id } = req.params;
+
     // Find the GymAndGymMember record to delete
     const relationship = await GymAndGymMember.findByPk(id);
 
@@ -246,9 +251,17 @@ exports.deleteGymAndGymMember = async (req, res) => {
     // Delete the GymAndGymMember record
     await GymAndGymMember.destroy({ where: { id } });
 
-    // Respond with 204 indicating successful deletion
-    res.sendStatus(204);
+    // Log success and respond with 204 indicating successful deletion
+    logger.info(`Deleted gymAndGymMember relationship with id ${id}`);
+    const response = {
+      message: "GymAndGymMember record deleted successfully",
+    };
+    res.status(204).json(response);
   } catch (error) {
+    // Log error and return JSON response
+    logger.error(
+      `Error deleting gymAndGymMember relationship: ${error.message}`
+    );
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
@@ -315,25 +328,26 @@ exports.deleteGymAndGymMember = async (req, res) => {
 exports.getAllGymAndGymMembers = async (req, res) => {
   const currentUser = req.user;
 
-  if (currentUser.type !== "admin") {
-    return res.status(401).json({
-      error: "Unauthorized, only admin user can fetch the relationships",
-    });
-  }
-
-  const { draw, start = 0, length = 10, search, order } = req.query;
-  const page = parseInt(start) / parseInt(length) + 1;
-  const limit = parseInt(length);
-
-  // Define sorting
-  const orderColumnIndex = order ? parseInt(order[0].column) : 0;
-  const orderDirection = order ? order[0].dir : "asc";
-  const orderFields = ["id", "memberId", "gymId"]; // Adjust based on actual fields
-  const sortField = orderFields[orderColumnIndex] || "id";
-
-  const searchValue = search ? search.value : "";
-
   try {
+    // Check if the current user is an admin
+    if (currentUser.type !== "admin") {
+      return res.status(401).json({
+        error: "Unauthorized, only admin user can fetch the relationships",
+      });
+    }
+
+    const { draw, start = 0, length = 10, search, order } = req.query;
+    const page = parseInt(start) / parseInt(length) + 1;
+    const limit = parseInt(length);
+
+    // Define sorting
+    const orderColumnIndex = order ? parseInt(order[0].column) : 0;
+    const orderDirection = order ? order[0].dir : "asc";
+    const orderFields = ["id", "memberId", "gymId"]; // Adjust based on actual fields
+    const sortField = orderFields[orderColumnIndex] || "id";
+
+    const searchValue = search ? search.value : "";
+
     const whereClause = searchValue
       ? {
           [Op.or]: [
@@ -362,6 +376,10 @@ exports.getAllGymAndGymMembers = async (req, res) => {
       order: [[sortField, orderDirection.toUpperCase()]],
     });
 
+    // Log success and return JSON response
+    logger.info(
+      `Retrieved ${relationships.count} gymAndGymMember relationships`
+    );
     res.status(200).json({
       draw: parseInt(draw),
       recordsTotal: relationships.count,
@@ -369,6 +387,10 @@ exports.getAllGymAndGymMembers = async (req, res) => {
       data: relationships.rows,
     });
   } catch (error) {
+    // Log error and return JSON response
+    logger.error(
+      `Error fetching gymAndGymMember relationships: ${error.message}`
+    );
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
@@ -410,23 +432,29 @@ exports.getAllGymAndGymMembers = async (req, res) => {
 exports.getMembersOfGym = async (req, res) => {
   const currentUser = req.user;
 
-  // Check if the current user is an admin
-  if (currentUser.type !== "admin") {
-    return res.status(401).json({
-      error: "Unauthorized, only admin user can fetch the members",
-    });
-  }
-
-  const { gymId } = req.params;
-
-  if (!gymId) {
-    return res.status(400).json({
-      error: "Validation error",
-      details: ["gymId is required"],
-    });
-  }
-
   try {
+    if (currentUser.type !== "admin" && currentUser.type !== "gym_admin") {
+      return res.status(401).json({
+        error: "Unauthorized, only admin user can fetch the members",
+      });
+    }
+
+    const { gymId } = req.params;
+
+    if (!gymId) {
+      return res.status(400).json({
+        error: "Validation error",
+        details: ["gymId is required"],
+      });
+    }
+
+    // if the current user is a gym_admin, check if the gymId matches the gymId of the gym_admin
+    if (currentUser.type === "gym_admin" && currentUser.gymId !== gymId) {
+      return res.status(401).json({
+        error: "Unauthorized, you can only fetch the members of your gym",
+      });
+    }
+
     const relationships = await GymAndGymMember.findAll({
       where: { gymId },
       include: [
@@ -449,8 +477,12 @@ exports.getMembersOfGym = async (req, res) => {
 
     const members = relationships.map((relationship) => relationship.member);
 
-    res.status(200).send(members);
+    // Log success and return JSON response
+    logger.info(`Retrieved ${members.length} members for gymId ${gymId}`);
+    res.status(200).json(members);
   } catch (error) {
+    // Log error and return JSON response
+    logger.error(`Error fetching members of gym: ${error.message}`);
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
@@ -492,23 +524,23 @@ exports.getMembersOfGym = async (req, res) => {
 exports.getGymsOfMember = async (req, res) => {
   const currentUser = req.user;
 
-  // Check if the current user is an admin
-  if (currentUser.type !== "admin") {
-    return res.status(401).json({
-      error: "Unauthorized, only admin user can fetch the gyms",
-    });
-  }
-
-  const { memberId } = req.params;
-
-  if (!memberId) {
-    return res.status(400).json({
-      error: "Validation error",
-      details: ["memberId is required"],
-    });
-  }
-
   try {
+    // Check if the current user is an admin
+    if (currentUser.type !== "admin") {
+      return res.status(401).json({
+        error: "Unauthorized, only admin user can fetch the gyms",
+      });
+    }
+
+    const { memberId } = req.params;
+
+    if (!memberId) {
+      return res.status(400).json({
+        error: "Validation error",
+        details: ["memberId is required"],
+      });
+    }
+
     const relationships = await GymAndGymMember.findAll({
       where: { memberId },
       include: [
@@ -529,8 +561,12 @@ exports.getGymsOfMember = async (req, res) => {
 
     const gyms = relationships.map((relationship) => relationship.gym);
 
-    res.status(200).send(gyms);
+    // Log success and return JSON response
+    logger.info(`Retrieved ${gyms.length} gyms for memberId ${memberId}`);
+    res.status(200).json(gyms);
   } catch (error) {
+    // Log error and return JSON response
+    logger.error(`Error fetching gyms of member: ${error.message}`);
     res.status(500).json({
       error: "Internal server error",
       details: [error.message],
