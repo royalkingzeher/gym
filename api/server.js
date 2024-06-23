@@ -8,6 +8,7 @@ const gymAndGymMemberRoutes = require("./routes/gymAndGymMemberRoutes");
 const gymMembershipPlanRoutes = require("./routes/gymMembershipPlanRoutes");
 const membershipPlansPriceRoutes = require("./routes/membershipPlansPriceRoutes");
 const membersMembershipRoutes = require("./routes/membersMembershipRoutes");
+const paymentsRoutes = require("./routes/paymentsRoutes");
 const swaggerConfig = require("./config/swaggerConfig");
 require("dotenv").config();
 
@@ -30,9 +31,12 @@ app.use("/api/gymAndGymMember", gymAndGymMemberRoutes);
 app.use("/api/gymMembershipPlans", gymMembershipPlanRoutes);
 app.use("/api/membershipPlansPrices", membershipPlansPriceRoutes);
 app.use("/api/membersMemberships", membersMembershipRoutes);
+app.use("/api/payments", paymentsRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Welcome to Gym Management API 1.0");
+  // res.send("Welcome to Gym Management API 1.0");
+  //redirect to docs
+  res.redirect("/api-docs");
 });
 
 // Swagger configuration
