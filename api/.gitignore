@@ -133,3 +133,5 @@ ehthumbs.db
 # Linux generated files
 *.swp
 .swo
+
+*.log
