@@ -10,6 +10,13 @@ router.post(
   membershipPlansPriceController.createMembershipPlanPrice
 );
 
+// GET /api/membershipPlansPrices
+router.get(
+  "/",
+  authMiddleware,
+  membershipPlansPriceController.getAllMembershipPlanPrices
+);
+
 // GET /api/membershipPlansPrices/:priceId
 router.get(
   "/:priceId",
