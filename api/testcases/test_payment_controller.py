@@ -2,7 +2,7 @@ import unittest
 import requests
 
 class TestPaymentController(unittest.TestCase):
-    BASE_URL = "http://localhost:3000/api"  # Replace with your actual base URL
+    BASE_URL = "http://localhost:3000/api/models/payments"  # Replace with your actual base URL
     HEADERS = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer your_valid_token_here'  # Replace with a valid token
