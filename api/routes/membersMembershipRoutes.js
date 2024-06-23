@@ -10,6 +10,13 @@ router.post(
   membersMembershipController.createMembersMembership
 );
 
+// GET /api/membersMemberships
+router.get(
+  "/",
+  authMiddleware,
+  membersMembershipController.getAllMembersMemberships
+);
+
 // GET /api/membersMemberships/:membershipId
 router.get(
   "/:membershipId",
