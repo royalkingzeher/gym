@@ -5,7 +5,7 @@ class TestPaymentController(unittest.TestCase):
     BASE_URL = "http://localhost:3000/api/payments"  # Replace with your actual base URL
     HEADERS = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer your_token_here'  # Replace with a valid token
+        'Authorization': 'Bearer your_valid_token_here'  # Replace with a valid token
     }
 
     def test_create_payment_success(self):
@@ -22,10 +22,15 @@ class TestPaymentController(unittest.TestCase):
             "comments": "First payment"
         }
         response = requests.post(self.BASE_URL, json=payload, headers=self.HEADERS)
+        try:
+            response_json = response.json()
+        except requests.exceptions.JSONDecodeError:
+            response_json = response.text
+
         if response.status_code != 201:
-            print(f"Response: {response.json()}")
+            print(f"Response: {response_json}")
         self.assertEqual(response.status_code, 201)
-        self.assertIn('id', response.json())
+        self.assertIn('id', response_json)
 
     def test_create_payment_bad_request(self):
         payload = {
@@ -77,8 +82,13 @@ class TestPaymentController(unittest.TestCase):
             "comments": "First payment"
         }
         response = requests.post(f"{self.BASE_URL}/simulate_internal_error", json=payload, headers=self.HEADERS)
+        try:
+            response_json = response.json()
+        except requests.exceptions.JSONDecodeError:
+            response_json = response.text
+
         if response.status_code != 500:
-            print(f"Response: {response.json()}")
+            print(f"Response: {response_json}")
         self.assertEqual(response.status_code, 500)
 
 if __name__ == '__main__':
