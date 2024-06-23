@@ -2,7 +2,7 @@ import unittest
 import requests
 
 class TestPaymentController(unittest.TestCase):
-    BASE_URL = "http://localhost:3000/api/payments"  # Replace with your actual base URL
+    BASE_URL = "http://localhost:3000/api"  # Replace with your actual base URL
     HEADERS = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer your_valid_token_here'  # Replace with a valid token
@@ -81,6 +81,7 @@ class TestPaymentController(unittest.TestCase):
             "total_amount": 5500.00,
             "comments": "First payment"
         }
+        # Ensure this endpoint exists and is correctly configured on your server
         response = requests.post(f"{self.BASE_URL}/simulate_internal_error", json=payload, headers=self.HEADERS)
         try:
             response_json = response.json()
