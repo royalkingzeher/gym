@@ -175,8 +175,11 @@ const logger = require("../utils/logger");
  * @swagger
  * /api/users:
  *   get:
- *     summary: Get list of all users
+ *     summary: Get list of users
+ *     description: Retrieve a list of users. The response depends on the user's role. Admins can see all users, gym admins can see their gym members, and gym members can only see themselves.
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -243,7 +246,6 @@ const logger = require("../utils/logger");
 exports.getAllUsers = async (req, res) => {
   const currentUser = req.user;
 
-  // Extract query parameters and provide sensible defaults
   const {
     page = 1,
     limit = 10,
@@ -306,10 +308,9 @@ exports.getAllUsers = async (req, res) => {
     };
 
     if (currentUser.type === "gym_admin") {
-      // Restrict view to gym members of the gym linked to the gym_admin
       const gymMembers = await GymAndGymMember.findAll({
         where: {
-          gymId: currentUser.gym_id, // Assuming gym_id is stored in currentUser
+          gymId: currentUser.gym_id,
         },
         attributes: ["memberId"],
       });
@@ -318,11 +319,9 @@ exports.getAllUsers = async (req, res) => {
       whereCondition = {
         ...whereCondition,
         id: { [Op.in]: memberIds },
-        type: "gym_member", // Assuming gym members are identified by type
-        // Add additional conditions as per your application logic
+        type: "gym_member",
       };
     } else if (currentUser.type === "gym_member") {
-      // Allow view/actions only for the gym_member itself
       whereCondition = {
         ...whereCondition,
         id: currentUser.id,
@@ -355,13 +354,15 @@ exports.getAllUsers = async (req, res) => {
     });
   }
 };
-
 /**
  * @swagger
  * /api/users/{id}:
  *   get:
  *     summary: Get a user by ID
+ *     description: Retrieve a user by their ID. Access is restricted based on user role.
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -376,6 +377,8 @@ exports.getAllUsers = async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized - User doesn't have permission to access this data
  *       404:
  *         description: User not found
  *       500:
@@ -385,6 +388,7 @@ exports.getUserById = async (req, res) => {
   const currentUser = req.user;
   const { id } = req.params;
 
+  // Check if user has permission to access this data
   if (
     currentUser.type !== "admin" &&
     currentUser.id !== parseInt(id, 10) &&
@@ -395,6 +399,7 @@ exports.getUserById = async (req, res) => {
     });
   }
 
+  // Additional check for gym_admin
   if (currentUser.type === "gym_admin") {
     const gymMember = await GymAndGymMember.findOne({
       where: {
@@ -410,6 +415,7 @@ exports.getUserById = async (req, res) => {
     }
   }
 
+  // Additional check for gym_member
   if (
     currentUser.type === "gym_member" &&
     currentUser.id !== parseInt(id, 10)
@@ -421,12 +427,15 @@ exports.getUserById = async (req, res) => {
 
   try {
     const user = await User.findByPk(id);
-    user.password = undefined;
+
     if (!user) {
       return res.status(404).json({
         message: "User not found",
       });
     }
+
+    // Remove password from the response
+    user.password = undefined;
 
     res.status(200).json(user);
   } catch (error) {
@@ -442,7 +451,10 @@ exports.getUserById = async (req, res) => {
  * /api/users/{id}:
  *   put:
  *     summary: Update a user by ID
+ *     description: Update a user's information. Access and update capabilities are restricted based on user role.
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -463,6 +475,8 @@ exports.getUserById = async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized - User doesn't have permission to update this data
  *       404:
  *         description: User not found
  *       500:
@@ -473,7 +487,7 @@ exports.updateUser = async (req, res) => {
   const { id } = req.params;
   const updateUserRequest = req.body;
 
-  //admin can update any user, gym_admin can update gym_member, gym_member can update only itself
+  // Check if user has permission to update this data
   if (
     currentUser.type !== "admin" &&
     currentUser.id !== parseInt(id, 10) &&
@@ -484,6 +498,7 @@ exports.updateUser = async (req, res) => {
     });
   }
 
+  // Additional check for gym_admin
   if (currentUser.type === "gym_admin") {
     const gymMember = await GymAndGymMember.findOne({
       where: {
@@ -499,12 +514,14 @@ exports.updateUser = async (req, res) => {
     }
   }
 
+  // Prevent gym_member from updating status
   if (currentUser.type === "gym_member" && updateUserRequest.status) {
     return res.status(401).json({
       message: "Unauthorized",
     });
   }
 
+  // Ensure gym_member can only update their own profile
   if (
     currentUser.type === "gym_member" &&
     currentUser.id !== parseInt(id, 10)
@@ -540,7 +557,10 @@ exports.updateUser = async (req, res) => {
  * /api/users/{id}:
  *   delete:
  *     summary: Delete a user by ID
+ *     description: Delete a user. This operation is restricted to admin users only.
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -551,6 +571,8 @@ exports.updateUser = async (req, res) => {
  *     responses:
  *       200:
  *         description: User deleted successfully
+ *       401:
+ *         description: Unauthorized - User doesn't have permission to delete users
  *       404:
  *         description: User not found
  *       500:
