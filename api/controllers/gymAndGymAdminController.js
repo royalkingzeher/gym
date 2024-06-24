@@ -4,6 +4,7 @@ const User = require("../models/user");
 const Gym = require("../models/gym");
 const logger = require("../utils/logger");
 
+
 /**
  * @swagger
  * components:
