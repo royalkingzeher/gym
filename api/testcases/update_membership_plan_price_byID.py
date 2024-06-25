@@ -1,82 +1,92 @@
-import requests
 import unittest
+import requests
 import json
 
-# Define the base URL of your API
-BASE_URL = 'http://localhost:3000/api/'
+class TestMembershipPlanPriceEndpoints(unittest.TestCase):
+    BASE_URL = "http://localhost:3000/api"  # Replace with your actual API base URL
+    ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzE5MjkzNDYyLCJleHAiOjE3MTkyOTcwNjJ9.rLCRjEkC4pKN9Y1uyHisKrck-fuc9QQWr819PgaUzDo"
+    TEST_PRICE_ID = None
+    VALID_MEMBERSHIP_PLAN_ID = 1  # Update with a valid membership plan ID from your database
 
-# Function to perform PUT request to update membership plan price by ID
-def update_membership_plan_price(price_id, payload, token=None):
-    headers = {'Content-Type': 'application/json'}
-    if token:
-        headers['Authorization'] = f'Bearer {token}'
+    @classmethod
+    def setUpClass(cls):
+        headers = {"Authorization": f"Bearer {cls.ADMIN_TOKEN}"}
+        new_price = {
+            "membership_plan_id":1,
+            "price": 100,
+            "validity_start_date": "2025-07-01",
+            "validity_end_date": "2026-09-30",
+            "comments": "Test setup"
+        }
+        response = requests.post(f"{cls.BASE_URL}/membershipPlansPrices", headers=headers, json=new_price)
+        print(f"Setup response: {response.json()}")
+        if response.status_code == 201:
+            cls.TEST_PRICE_ID = response.json().get("id")
+        else:
+            raise Exception("Failed to create a test membership plan price. Response: " + response.text)
 
-    response = requests.put(f'{BASE_URL}/membershipPlansPrices/update/{price_id}', headers=headers, data=json.dumps(payload))
-    return response
+    def test_01_get_all_membership_plan_prices(self):
+        headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
+        response = requests.get(f"{self.BASE_URL}/membershipPlansPrices", headers=headers)
+        print(response.json())
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("data", response.json())
+        self.assertIn("recordsTotal", response.json())
 
-# Test cases
-def test_update_existing_price():
-    # Existing price ID to update
-    price_id = 1
-    payload = {
-        "price": 120.00,
-        "validity_start_date": "2024-07-01",
-        "validity_end_date": "2024-12-31"
-    }
-    response = update_membership_plan_price(price_id, payload)
-    assert response.status_code == 200
-    print("Test Case: Update existing price - Passed")
+    def test_02_get_specific_membership_plan_price(self):
+        headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
+        response = requests.get(f"{self.BASE_URL}/membershipPlansPrices/{self.TEST_PRICE_ID}", headers=headers)
+        print(response.json())
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("id", response.json())
 
-def test_invalid_date_order():
-    price_id = 1
-    payload = {
-        "validity_start_date": "2024-12-31",
-        "validity_end_date": "2024-07-01"
-    }
-    response = update_membership_plan_price(price_id, payload)
-    assert response.status_code == 400
-    print("Test Case: Invalid date order - Passed")
+    def test_03_get_specific_membership_plan_price_not_found(self):
+        headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
+        price_id = 999  # Non-existent price ID
+        response = requests.get(f"{self.BASE_URL}/membershipPlansPrices/{price_id}", headers=headers)
+        print(response.json())
+        self.assertEqual(response.status_code, 404)
 
-def test_unauthorized():
-    price_id = 1
-    payload = {
-        "price": 99.99,
-        "validity_start_date": "2024-07-01",
-        "validity_end_date": "2024-12-31"
-    }
-    # Simulate unauthorized request by not providing a token
-    response = update_membership_plan_price(price_id, payload)
-    assert response.status_code == 401
-    print("Test Case: Unauthorized update attempt - Passed")
+    def test_05_create_membership_plan_price_invalid_dates(self):
+        headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
+        new_price = {
+            "membership_plan_id": self.VALID_MEMBERSHIP_PLAN_ID,
+            "price": 100,
+            "validity_start_date": "2022-06-31",  # Invalid date
+            "validity_end_date": "2021-07-01",
+        }
+        response = requests.post(f"{self.BASE_URL}/membershipPlansPrices", headers=headers, json=new_price)
+        print(response.json())
+        self.assertEqual(response.status_code, 400)
 
-def test_price_not_found():
-    # Use a non-existent price ID
-    price_id = 999
-    payload = {
-        "price": 99.99,
-        "validity_start_date": "2024-07-01",
-        "validity_end_date": "2024-12-31"
-    }
-    response = update_membership_plan_price(price_id, payload)
-    assert response.status_code == 404
-    print("Test Case: Price not found - Passed")
+    def test_06_update_membership_plan_price(self):
+        headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
+        updated_price = {
+            "price": 150,
+        }
+        response = requests.put(f"{self.BASE_URL}/membershipPlansPrices/update/{self.TEST_PRICE_ID}", headers=headers, json=updated_price)
+        print(response.json())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["price"], 150)
 
-def test_internal_server_error():
-    # Trigger an internal server error (e.g., malformed payload)
-    price_id = 1
-    payload = {
-        "price": "invalid_price",  # Malformed data
-        "validity_start_date": "2024-07-01",
-        "validity_end_date": "2024-12-31"
-    }
-    response = update_membership_plan_price(price_id, payload)
-    assert response.status_code == 500
-    print("Test Case: Internal server error - Passed")
+    def test_07_update_membership_plan_price_not_found(self):
+        headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
+        price_id = 999  # Non-existent price ID
+        updated_price = {
+            "price": 150,
+        }
+        response = requests.put(f"{self.BASE_URL}/membershipPlansPrices/update/{price_id}", headers=headers, json=updated_price)
+        print(response.json())
+        self.assertEqual(response.status_code, 404)
 
-# Run the test cases
-if __name__ == '__main__':
-    test_update_existing_price()
-    test_invalid_date_order()
-    test_unauthorized()
-    test_price_not_found()
-    test_internal_server_error()
+    def test_08_delete_membership_plan_price(self):
+        headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
+        response = requests.delete(f"{self.BASE_URL}/membershipPlansPrices/delete/{self.TEST_PRICE_ID}", headers=headers)
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"Non-JSON response: {response.text}")
+        self.assertEqual(response.status_code, 204)
+
+if __name__ == "__main__":
+    unittest.main()
