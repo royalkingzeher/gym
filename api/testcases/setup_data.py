@@ -31,6 +31,8 @@ class TestAdminSignupAndActions(unittest.TestCase):
         # Use the token to delete all data
         headers = {"Authorization": f"Bearer {cls.ADMIN_TOKEN}"}
         response = requests.delete(f"{cls.BASE_URL}/deleteAll", headers=headers)
+        if response.status_code != 200:
+            raise Exception("Failed to delete all data")
         print("Deleted all data:", response.json())
 
         # Signup again to prepare for other test cases
@@ -47,7 +49,6 @@ class TestAdminSignupAndActions(unittest.TestCase):
     def test_admin_token(self):
         self.assertIsNotNone(self.ADMIN_TOKEN)
         print("Admin Token:", self.ADMIN_TOKEN)
-
 
     def test_create_gym(self):
         headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
@@ -72,7 +73,7 @@ class TestAdminSignupAndActions(unittest.TestCase):
         
         # Assert the response
         print("Create Gym Response:", response.json())
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 201)  # Typically, creation endpoints return 201
         self.__class__.GYM_ID = response.json()["gym"]["id"]
         
     def test_create_gym_member(self):
@@ -97,11 +98,11 @@ class TestAdminSignupAndActions(unittest.TestCase):
             "emergencyContactPhone": "9876543211",
             "emergencyContactEmail": "john.smith@example.com",
             "gymId": self.GYM_ID
-            }
+        }
         
         response = requests.post(f"{self.BASE_URL}/signup/gymmember", json=gym_member, headers=headers)
         print("Create Gym Member Response:", response.json())
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 201)  # Typically, creation endpoints return 201
         self.__class__.GYM_MEMBER_ID = response.json()["user"]["id"]  
         
     def test_create_gym_admin(self):
@@ -125,11 +126,11 @@ class TestAdminSignupAndActions(unittest.TestCase):
             "emergencyContactRelationship": "Spouse",
             "emergencyContactPhone": "9876543211",
             "emergencyContactEmail": "jane.doe@example.com"
-            }
+        }
         
         response = requests.post(f"{self.BASE_URL}/signup/gymadmin", json=gym_admin, headers=headers)
         print("Create Gym Admin Response:", response.json())
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 201)  # Typically, creation endpoints return 201
         self.__class__.GYM_ADMIN_ID = response.json()["user"]["id"]
         
     def test_link_gym_admin_to_gym(self):
@@ -137,7 +138,7 @@ class TestAdminSignupAndActions(unittest.TestCase):
         link_data = {
             "gymAdminId": self.GYM_ADMIN_ID,
             "gymId": self.GYM_ID
-            }
+        }
         response = requests.post(f"{self.BASE_URL}/gymAndGymAdmin", json=link_data, headers=headers)
         print("Link Gym Admin to Gym Response:", response.json())
         self.assertEqual(response.status_code, 200)
@@ -151,7 +152,7 @@ class TestAdminSignupAndActions(unittest.TestCase):
             "duration_type": "months",
             "duration_value": 1,
             "category": "Regular"
-            }
+        }
         response = requests.post(f"{self.BASE_URL}/gymMembershipPlans", json=membership_plan, headers=headers)
         print("Create Membership Plan Response:", response.json())
         self.assertEqual(response.status_code, 201)
@@ -165,7 +166,7 @@ class TestAdminSignupAndActions(unittest.TestCase):
             "validity_start_date": "2024-06-29",
             "validity_end_date": "2025-06-29",
             "comments": "This is a test price"
-            }
+        }
         response = requests.post(f"{self.BASE_URL}/membershipPlansPrices", json=membership_plan_price, headers=headers)
         print("Create Membership Plan Price Response:", response.json())
         self.assertEqual(response.status_code, 201)
@@ -173,8 +174,8 @@ class TestAdminSignupAndActions(unittest.TestCase):
             "gym_member_id": self.GYM_MEMBER_ID,
             "membership_plan_id": self.MEMBERSHIP_PLAN_ID,
             "start_date": "2024-06-29",
-            "end_date": "2024-8-29"
-            }
+            "end_date": "2024-08-29"
+        }
         response = requests.post(f"{self.BASE_URL}/membersMemberships", json=members_membership, headers=headers)
         print("Create Members Membership Response:", response.json())
         self.assertEqual(response.status_code, 201)
