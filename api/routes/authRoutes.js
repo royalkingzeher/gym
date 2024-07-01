@@ -18,4 +18,7 @@ router.post("/login", authController.login);
 // To get logged in user details
 router.post("/userDetails", authMiddleware, authController.userDetails);
 
+// To delete all
+router.delete("/deleteAll", authMiddleware, authController.deleteAll);
+
 module.exports = router;
