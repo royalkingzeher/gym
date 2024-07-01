@@ -94,6 +94,7 @@ exports.createMembersMembership = async (req, res) => {
 
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
+    console.log("AA", gym_member_id, membership_plan_id, startDate, endDate);
 
     // Validate required fields and date order
     if (
@@ -102,10 +103,12 @@ exports.createMembersMembership = async (req, res) => {
       isNaN(startDate) ||
       isNaN(endDate)
     ) {
+      logger.error("Invalid or missing fields.");
       return res.status(400).json({ error: "Invalid or missing fields." });
     }
 
     if (startDate >= endDate) {
+      logger.error("Start date must be before end date.");
       return res
         .status(400)
         .json({ error: "Start date must be before end date." });
@@ -121,6 +124,7 @@ exports.createMembersMembership = async (req, res) => {
     });
 
     if (overlaps) {
+      logger.error("Membership period overlaps with an existing membership.");
       return res.status(400).json({
         error: "Membership period overlaps with an existing membership.",
       });
