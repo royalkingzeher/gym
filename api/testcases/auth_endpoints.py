@@ -71,18 +71,21 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_05_signup_gym_member(self):
-        data = {
-            "username": f"testgymmember_{random.randint(1000, 9999)}",
-            "password": "testgymmember123",
-            "firstName": "Test",
-            "lastName": "GymMember",
-            "email": f"testgymmember{random.randint(1000, 9999)}@example.com",
-            "phone": "9876543210",
-            "gymId": 1  # Assuming a gym with ID 1 exists
-        }
-        response = requests.post(f"{self.BASE_URL}/signup/gymmember", json=data)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Gym member user created successfully", response.json()["message"])
+    data = {
+        "username": f"testgymmember_{random.randint(1000, 9999)}",
+        "password": "testgymmember123",
+        "firstName": "Test",
+        "lastName": "GymMember",
+        "email": f"testgymmember{random.randint(1000, 9999)}@example.com",
+        "phone": "9876543210",
+        "gymId": 1  # Ensure that a gym with ID 1 exists
+    }
+    response = requests.post(f"{self.BASE_URL}/signup/gymmember", json=data)
+    print("Response Status Code:", response.status_code)
+    print("Response Content:", response.json())
+    self.assertEqual(response.status_code, 200)
+    self.assertIn("Gym member user created successfully", response.json()["message"])
+
 
     def test_06_signup_gym_member_invalid(self):
         data = {
