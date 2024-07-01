@@ -27,7 +27,9 @@ class TestAPIEndpoints(unittest.TestCase):
 
         # Login as the new admin and store the token
         login_response = requests.post(f"{cls.BASE_URL}/login", json=admin_data)
-        cls.ADMIN_TOKEN = login_response.json()["token"]
+        cls.ADMIN_TOKEN = login_response.json().get("token")
+        if not cls.ADMIN_TOKEN:
+            raise Exception("Failed to retrieve admin token")
 
     def test_01_signup_admin(self):
         data = {
@@ -71,21 +73,20 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_05_signup_gym_member(self):
-    data = {
-        "username": f"testgymmember_{random.randint(1000, 9999)}",
-        "password": "testgymmember123",
-        "firstName": "Test",
-        "lastName": "GymMember",
-        "email": f"testgymmember{random.randint(1000, 9999)}@example.com",
-        "phone": "9876543210",
-        "gymId": 1  # Ensure that a gym with ID 1 exists
-    }
-    response = requests.post(f"{self.BASE_URL}/signup/gymmember", json=data)
-    print("Response Status Code:", response.status_code)
-    print("Response Content:", response.json())
-    self.assertEqual(response.status_code, 200)
-    self.assertIn("Gym member user created successfully", response.json()["message"])
-
+        data = {
+            "username": f"testgymmember_{random.randint(1000, 9999)}",
+            "password": "testgymmember123",
+            "firstName": "Test",
+            "lastName": "GymMember",
+            "email": f"testgymmember{random.randint(1000, 9999)}@example.com",
+            "phone": "9876543210",
+            "gymId": 1  # Ensure that a gym with ID 1 exists
+        }
+        response = requests.post(f"{self.BASE_URL}/signup/gymmember", json=data)
+        print("Response Status Code:", response.status_code)
+        print("Response Content:", response.json())
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Gym member user created successfully", response.json()["message"])
 
     def test_06_signup_gym_member_invalid(self):
         data = {
@@ -116,7 +117,7 @@ class TestAPIEndpoints(unittest.TestCase):
 
     def test_09_user_details(self):
         headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
-        response = requests.post(f"{self.BASE_URL}/userDetails", headers=headers)
+        response = requests.get(f"{self.BASE_URL}/userDetails", headers=headers)
         self.assertEqual(response.status_code, 200)
         user_data = response.json()
         self.assertEqual(user_data["username"], self.ADMIN_USERNAME)
