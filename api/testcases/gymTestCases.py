@@ -5,7 +5,7 @@ import random
 import string
 
 class TestGymEndpoints(unittest.TestCase):
-    BASE_URL = "http://localhost:3000/api"  
+    BASE_URL = "http://localhost:3000/api"
     ADMIN_TOKEN = None
     GYM_ADMIN_TOKEN = None
     GYM_MEMBER_TOKEN = None
@@ -17,9 +17,14 @@ class TestGymEndpoints(unittest.TestCase):
         admin_username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
         admin_password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
         admin_data = {"username": admin_username, "password": admin_password}
-        requests.post(f"{cls.BASE_URL}/signup/admin", json=admin_data)
+        response = requests.post(f"{cls.BASE_URL}/signup/admin", json=admin_data)
+        if response.status_code != 200:
+            raise Exception("Failed to create admin account for testing")
+        
         login_response = requests.post(f"{cls.BASE_URL}/login", json=admin_data)
-        cls.ADMIN_TOKEN = login_response.json()["token"]
+        cls.ADMIN_TOKEN = login_response.json().get("token")
+        if not cls.ADMIN_TOKEN:
+            raise Exception("Failed to retrieve admin token")
 
         # Create gym admin account and get token
         gym_admin_data = {
@@ -31,9 +36,14 @@ class TestGymEndpoints(unittest.TestCase):
             "phone": "1234567890"
         }
         headers = {"Authorization": f"Bearer {cls.ADMIN_TOKEN}"}
-        requests.post(f"{cls.BASE_URL}/signup/gymadmin", json=gym_admin_data, headers=headers)
+        response = requests.post(f"{cls.BASE_URL}/signup/gymadmin", json=gym_admin_data, headers=headers)
+        if response.status_code != 200:
+            raise Exception("Failed to create gym admin account for testing")
+
         login_response = requests.post(f"{cls.BASE_URL}/login", json={"username": gym_admin_data["username"], "password": gym_admin_data["password"]})
-        cls.GYM_ADMIN_TOKEN = login_response.json()["token"]
+        cls.GYM_ADMIN_TOKEN = login_response.json().get("token")
+        if not cls.GYM_ADMIN_TOKEN:
+            raise Exception("Failed to retrieve gym admin token")
 
         # Create gym member account and get token
         gym_member_data = {
@@ -45,9 +55,14 @@ class TestGymEndpoints(unittest.TestCase):
             "phone": "9876543210",
             "gymId": 1  # Assuming a gym with ID 1 exists
         }
-        requests.post(f"{cls.BASE_URL}/signup/gymmember", json=gym_member_data)
+        response = requests.post(f"{cls.BASE_URL}/signup/gymmember", json=gym_member_data)
+        if response.status_code != 200:
+            raise Exception("Failed to create gym member account for testing")
+
         login_response = requests.post(f"{cls.BASE_URL}/login", json={"username": gym_member_data["username"], "password": gym_member_data["password"]})
-        cls.GYM_MEMBER_TOKEN = login_response.json()["token"]
+        cls.GYM_MEMBER_TOKEN = login_response.json().get("token")
+        if not cls.GYM_MEMBER_TOKEN:
+            raise Exception("Failed to retrieve gym member token")
 
     def test_01_create_gym(self):
         headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
@@ -67,23 +82,23 @@ class TestGymEndpoints(unittest.TestCase):
         }
         response = requests.post(f"{self.BASE_URL}/gym", headers=headers, json=gym_data)
         self.assertEqual(response.status_code, 200)
-        self.assertIn("id", response.json()["gym"])
+        self.assertIn("gym", response.json())
         self.__class__.TEST_GYM_ID = response.json()["gym"]["id"]
 
-    def test_03_get_all_gyms(self):
+    def test_02_get_all_gyms(self):
         headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
         response = requests.get(f"{self.BASE_URL}/gym", headers=headers)
         self.assertEqual(response.status_code, 200)
         self.assertIn("data", response.json())
         self.assertIn("meta", response.json())
 
-    def test_04_get_gym_by_id(self):
+    def test_03_get_gym_by_id(self):
         headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
         response = requests.get(f"{self.BASE_URL}/gym/{self.TEST_GYM_ID}", headers=headers)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["id"], self.TEST_GYM_ID)
 
-    def test_05_update_gym(self):
+    def test_04_update_gym(self):
         headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
         update_data = {
             "name": f"Updated Test Gym {random.randint(1000, 9999)}",
@@ -94,17 +109,16 @@ class TestGymEndpoints(unittest.TestCase):
         self.assertEqual(response.json()["name"], update_data["name"])
         self.assertEqual(response.json()["email"], update_data["email"])
 
-    def test_06_delete_gym(self):
+    def test_05_delete_gym(self):
         headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
         response = requests.delete(f"{self.BASE_URL}/gym/{self.TEST_GYM_ID}", headers=headers)
         self.assertEqual(response.status_code, 200)
 
-    def test_07_gym_access_admin(self):
+    def test_06_gym_access_admin(self):
         headers = {"Authorization": f"Bearer {self.ADMIN_TOKEN}"}
         response = requests.get(f"{self.BASE_URL}/gym", headers=headers)
         self.assertEqual(response.status_code, 200)
         self.assertIn("data", response.json())
 
-    
 if __name__ == "__main__":
     unittest.main()
