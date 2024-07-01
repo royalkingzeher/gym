@@ -136,15 +136,39 @@ const GymAndGymAdmin = require("../models/gymAndGymAdmin");
  *               properties:
  *                 error:
  *                   type: string
+ *                   example: Validation error
  *                 details:
  *                   type: array
  *                   items:
  *                     type: string
+ *                     example: name is required
  *       401:
  *         description: Unauthorized, only admin user can create gym
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Unauthorized, only admin user can create gym
  *       500:
  *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error
+ *                 details:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                     example: Detailed error message
  */
+
 exports.createGym = async (req, res) => {
   const currentUser = req.user;
 
@@ -324,14 +348,38 @@ exports.createGym = async (req, res) => {
  *                   properties:
  *                     totalItems:
  *                       type: integer
+ *                       example: 100
  *                     totalPages:
  *                       type: integer
+ *                       example: 10
  *                     currentPage:
  *                       type: integer
+ *                       example: 1
  *       401:
- *         description: Unauthorized, only admin user can view gyms
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Unauthorized
  *       500:
  *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error
+ *                 details:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                     example: Detailed error message
  */
 exports.getAllGyms = async (req, res) => {
   const currentUser = req.user;
@@ -347,28 +395,42 @@ exports.getAllGyms = async (req, res) => {
       search,
     } = req.query;
 
+    const validColumns = [
+      "name",
+      "address",
+      "city",
+      "state",
+      "country",
+      "phone_number",
+      "email",
+      "contact_person",
+    ];
+
+    const sanitizedSortBy = validColumns.includes(sortBy) ? sortBy : "name";
+    const sanitizedOrder = order.toUpperCase() === "DESC" ? "DESC" : "ASC";
+
     const options = {
       offset: (page - 1) * limit,
       limit: +limit,
-      order: [[sortBy, order.toUpperCase()]],
+      order: [[sanitizedSortBy, sanitizedOrder]],
       where: {},
     };
 
     if (search) {
       options.where[Op.or] = [
-        { name: { [Op.iLike]: `%${search}%` } },
-        { address: { [Op.iLike]: `%${search}%` } },
-        { city: { [Op.iLike]: `%${search}%` } },
-        { state: { [Op.iLike]: `%${search}%` } },
-        { country: { [Op.iLike]: `%${search}%` } },
-        { phone_number: { [Op.iLike]: `%${search}%` } },
-        { email: { [Op.iLike]: `%${search}%` } },
-        { contact_person: { [Op.iLike]: `%${search}%` } },
+        { name: { [Op.like]: `%${search}%` } },
+        { address: { [Op.like]: `%${search}%` } },
+        { city: { [Op.like]: `%${search}%` } },
+        { state: { [Op.like]: `%${search}%` } },
+        { country: { [Op.like]: `%${search}%` } },
+        { phone_number: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { contact_person: { [Op.like]: `%${search}%` } },
       ];
     }
 
     if (currentUser.type === "gym_admin" || currentUser.type === "gym_member") {
-      gymId = currentUser.gymId;
+      const gymId = currentUser.gymId;
       options.where.id = gymId;
     }
 
@@ -422,10 +484,39 @@ exports.getAllGyms = async (req, res) => {
  *               $ref: '#/components/schemas/Gym'
  *       404:
  *         description: Gym not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Gym with ID {id} not found
  *       401:
- *         description: Unauthorized, only admin user can view gyms
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Unauthorized, only admin user can view gyms
  *       500:
  *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error
+ *                 details:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                     example: Detailed error message
  */
 exports.getGymById = async (req, res) => {
   const currentUser = req.user;
@@ -598,12 +689,44 @@ exports.updateGymById = async (req, res) => {
  *     responses:
  *       200:
  *         description: Gym deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Gym with ID {id} deleted successfully
  *       401:
  *         description: Unauthorized, only admin user can delete gyms
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Unauthorized, only admin user can delete gyms
  *       404:
  *         description: Gym not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Gym with ID {id} not found
  *       500:
  *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error
  */
 exports.deleteGymById = async (req, res) => {
   const currentUser = req.user;
